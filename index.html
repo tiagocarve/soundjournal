@@ -4,66 +4,73 @@
     <meta charset="UTF-8">
     <title>Soundjournal | Zen</title>
     <style>
-        :root[data-theme="light"] {
-            --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83;
-        }
-        :root[data-theme="sepia"] {
-            --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636;
-        }
-        :root[data-theme="dark"] {
-            --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999;
+        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83; }
+        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636; }
+        :root[data-theme="dark"] { --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999; }
+
+        body, html { 
+            margin: 0; padding: 0; background-color: var(--bg); color: var(--text); 
+            height: 100%; width: 100%; transition: all 0.4s ease; 
+            font-family: 'Georgia', serif; overflow: hidden;
         }
 
-        body, html {
-            margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
-            height: 100%; transition: all 0.4s ease; font-family: 'Georgia', serif;
-            overflow-x: hidden;
+        /* THE SHIELD: Keeps the top margin solid */
+        #header-shield {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 100px; /* This defines your "Permanent" top margin */
+            background-color: var(--bg);
+            z-index: 100;
+            transition: background-color 0.4s ease;
+        }
+        
+        #scroll-container {
+            height: 100vh;
+            width: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        #writing-area {
-            width: 90%; max-width: 650px; margin: 0 auto;
-            padding: 120px 20px 250px 20px; outline: none;
-            line-height: 1.8; min-height: 80vh;
+        #writing-area { 
+            width: 90%; max-width: 650px; 
+            padding: 120px 20px 40vh 20px; /* 120px matches/exceeds shield height */
+            outline: none; 
+            line-height: 1.8; 
+            min-height: 100%;
+            box-sizing: border-box;
+            z-index: 10;
         }
 
-        #timer-display {
-            position: fixed; top: 25px; left: 25px;
-            font-family: monospace; font-size: 14px;
-            letter-spacing: 1px; font-weight: bold; color: var(--accent);
-        }
+        #timer-display { position: fixed; top: 25px; left: 25px; font-family: monospace; font-size: 14px; font-weight: bold; color: var(--accent); z-index: 101; }
+        #nav-tools { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; align-items: center; z-index: 101; }
 
-        #nav-tools {
-            position: fixed; top: 20px; right: 20px;
-            display: flex; gap: 12px; align-items: center;
-        }
-
-        .zen-circle {
-            width: 32px; height: 32px; border-radius: 50%;
-            border: 1px solid var(--text); background: transparent;
-            cursor: pointer; opacity: 0.5; transition: 0.3s;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 11px; color: var(--text); text-transform: uppercase;
-        }
+        .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: var(--bg); cursor: pointer; opacity: 0.5; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text); }
         .zen-circle:hover { opacity: 1; background: var(--ui); }
 
-        #footer {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 25px; background: linear-gradient(transparent, var(--bg) 70%);
-            text-align: center; font-family: monospace;
-            font-size: 14px; font-weight: 600;
-            color: var(--stats); letter-spacing: 1px;
-            pointer-events: none;
-        }
+        #toast { position: fixed; top: 70px; right: 20px; background: var(--accent); color: white; padding: 8px 15px; border-radius: 5px; font-family: sans-serif; font-size: 12px; display: none; z-index: 1000; }
 
-        ::-webkit-scrollbar { display: none; }
+        #footer { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            padding: 25px; background: linear-gradient(transparent, var(--bg) 50%, var(--bg)); 
+            text-align: center; font-family: monospace; font-size: 14px; color: var(--stats); 
+            pointer-events: none; z-index: 100;
+        }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--ui); border-radius: 10px; }
     </style>
 </head>
 <body>
 
+    <div id="header-shield"></div>
     <div id="timer-display"></div>
+    <div id="toast">Copied to Clipboard</div>
 
     <div id="nav-tools">
-        <button class="zen-circle" id="time-btn" title="Insert Timestamp">🕒</button>
+        <button class="zen-circle" id="copy-btn" title="Copy All">⎗</button>
+        <button class="zen-circle" id="dl-btn" title="Download">↓</button>
+        <button class="zen-circle" id="time-btn" title="Time">🕒</button>
         <button class="zen-circle" id="font-btn" title="Font">F</button>
         <button class="zen-circle" id="size-btn" title="Size">S</button>
         <button class="zen-circle" id="timer-btn" title="Timer">T</button>
@@ -71,31 +78,30 @@
         <button class="zen-circle" id="full-btn" title="Zen">⛶</button>
     </div>
 
-    <div id="writing-area" contenteditable="true" spellcheck="false" autofocus></div>
-
-    <div id="footer">
-        <span id="stats">0 WORDS | 0 CHARACTERS</span>
+    <div id="scroll-container">
+        <div id="writing-area" contenteditable="true" spellcheck="false" autofocus></div>
     </div>
+
+    <div id="footer"><span id="stats">0 WORDS | 0 CHARACTERS</span></div>
 
     <script>
         const editor = document.getElementById('writing-area');
         const stats = document.getElementById('stats');
         const timerDisplay = document.getElementById('timer-display');
+        const toast = document.getElementById('toast');
         
-        let fonts = ["'Georgia', serif", "sans-serif", "monospace"];
-        let fontIdx = 0;
-        let sizes = [17, 19, 21, 24];
-        let sizeIdx = 1; 
-        let themes = ["light", "sepia", "dark"];
-        let themeIdx = 0;
+        let fonts = ["'Georgia', serif", "sans-serif", "monospace"], fontIdx = 0;
+        let sizes = [17, 19, 21, 24], sizeIdx = 1; 
+        let themes = ["light", "sepia", "dark"], themeIdx = 0;
         let timerInterval;
 
-        editor.innerText = localStorage.getItem('zen_final_v4') || "";
+        // Load content - Using v10 for this major layout fix
+        editor.innerText = localStorage.getItem('soundjournal_v10') || "";
         editor.style.fontSize = sizes[sizeIdx] + 'px';
         updateStats();
 
         editor.addEventListener('input', () => {
-            localStorage.setItem('zen_final_v4', editor.innerText);
+            localStorage.setItem('soundjournal_v10', editor.innerText);
             updateStats();
         });
 
@@ -106,76 +112,53 @@
             stats.innerText = `${words} WORDS | ${chars} CHARACTERS`;
         }
 
-        // New Timestamp Function
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        document.getElementById('copy-btn').onclick = () => {
+            const text = editor.innerText;
+            if(!text) { showToast("Nothing to copy!"); return; }
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Copied! Ready to paste on iPhone.");
+            });
+        };
+
+        document.getElementById('dl-btn').onclick = () => {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + "h" + now.getMinutes().toString().padStart(2, '0');
+            const blob = new Blob([editor.innerText], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Soundjournal-${now.toISOString().slice(0,10)}-${timeStr}.txt`;
+            a.click();
+            showToast("Saved to downloads");
+        };
+
         document.getElementById('time-btn').onclick = () => {
             const now = new Date();
             const stamp = `\n[${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}]\n`;
-            
-            // Insert at cursor position
-            const selection = window.getSelection();
-            if (selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                range.deleteContents();
-                range.insertNode(document.createTextNode(stamp));
-                // Move cursor to end of stamp
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } else {
-                editor.innerText += stamp;
-            }
+            document.execCommand('insertText', false, stamp);
             updateStats();
         };
 
-        document.getElementById('font-btn').onclick = () => {
-            fontIdx = (fontIdx + 1) % fonts.length;
-            editor.style.fontFamily = fonts[fontIdx];
-        };
-
-        document.getElementById('size-btn').onclick = () => {
-            sizeIdx = (sizeIdx + 1) % sizes.length;
-            editor.style.fontSize = sizes[sizeIdx] + 'px';
-        };
-
-        document.getElementById('theme-btn').onclick = () => {
-            themeIdx = (themeIdx + 1) % themes.length;
-            document.documentElement.setAttribute('data-theme', themes[themeIdx]);
-        };
-
+        document.getElementById('font-btn').onclick = () => { fontIdx = (fontIdx + 1) % fonts.length; editor.style.fontFamily = fonts[fontIdx]; };
+        document.getElementById('size-btn').onclick = () => { sizeIdx = (sizeIdx + 1) % sizes.length; editor.style.fontSize = sizes[sizeIdx] + 'px'; };
+        document.getElementById('theme-btn').onclick = () => { themeIdx = (themeIdx + 1) % themes.length; document.documentElement.setAttribute('data-theme', themes[themeIdx]); };
         document.getElementById('timer-btn').onclick = () => {
             const mins = prompt("Target minutes:", "20");
             if (mins) {
                 clearInterval(timerInterval);
-                let timerSeconds = mins * 60;
+                let secs = mins * 60;
                 timerInterval = setInterval(() => {
-                    if (timerSeconds <= 0) {
-                        clearInterval(timerInterval);
-                        timerDisplay.innerText = "TARGET REACHED";
-                    } else {
-                        const m = Math.floor(timerSeconds / 60);
-                        const s = timerSeconds % 60;
-                        timerDisplay.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
-                        timerSeconds--;
-                    }
+                    if (secs <= 0) { clearInterval(timerInterval); timerDisplay.innerText = "DONE"; }
+                    else { timerDisplay.innerText = `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`; secs--; }
                 }, 1000);
             }
         };
-
-        document.getElementById('full-btn').onclick = () => {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else document.exitFullscreen();
-        };
-
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault();
-                const blob = new Blob([editor.innerText], { type: 'text/plain' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `Soundjournal-${new Date().toISOString().slice(0,10)}.txt`;
-                a.click();
-            }
-        });
+        document.getElementById('full-btn').onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
     </script>
 </body>
 </html>
