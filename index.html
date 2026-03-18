@@ -2,30 +2,33 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Soundjournal | Zen</title>
+    <title>Soundjournal | Deep Zen</title>
     <style>
-        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83; --pulse: #eee8d5; }
-        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636; --pulse: #eadaaf; }
-        :root[data-theme="dark"] { --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999; --pulse: #333; }
+        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83; --pulse-bg: #e8dfc4; --pulse-text: #268bd2; }
+        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636; --pulse-bg: #dcc8a0; --pulse-text: #8c6c4f; }
+        /* Darker Dark Mode: Pulses to pure black while text brightens */
+        :root[data-theme="dark"] { --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999; --pulse-bg: #000000; --pulse-text: #ffffff; }
 
         body, html { 
             margin: 0; padding: 0; background-color: var(--bg); color: var(--text); 
-            height: 100%; width: 100%; transition: background-color 2s ease;
+            height: 100%; width: 100%; transition: all 1.5s ease;
             font-family: 'Georgia', serif; overflow: hidden;
         }
 
-        /* 8-Second Pulse (2 cycles of 4 seconds) */
+        /* 8-Second Environmental Pulse */
         @keyframes zenPulse {
-            0% { background-color: var(--bg); }
-            50% { background-color: var(--pulse); }
-            100% { background-color: var(--bg); }
+            0% { background-color: var(--bg); color: var(--text); }
+            50% { background-color: var(--pulse-bg); color: var(--pulse-text); }
+            100% { background-color: var(--bg); color: var(--text); }
         }
-        .timer-finished { animation: zenPulse 4s ease-in-out 2; } /* '2' means it stops after 8s */
+
+        .timer-finished { animation: zenPulse 4s ease-in-out 2; }
+        .timer-finished #timer-display { color: var(--pulse-text); font-weight: bold; }
 
         #header-shield { position: fixed; top: 0; left: 0; right: 0; height: 100px; background-color: inherit; z-index: 100; }
         #scroll-container { height: 100vh; width: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
         #writing-area { width: 90%; max-width: 650px; padding: 120px 20px 40vh 20px; outline: none; line-height: 1.8; min-height: 100%; box-sizing: border-box; z-index: 10; }
-        #timer-display { position: fixed; top: 25px; left: 25px; font-family: monospace; font-size: 14px; font-weight: bold; color: var(--accent); z-index: 101; }
+        #timer-display { position: fixed; top: 25px; left: 25px; font-family: monospace; font-size: 14px; color: var(--accent); z-index: 101; }
         #nav-tools { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; align-items: center; z-index: 101; }
         .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.5; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text); }
         .zen-circle:hover { opacity: 1; background: var(--ui); }
@@ -70,12 +73,12 @@
         let themes = ["light", "sepia", "dark"], themeIdx = 0;
         let timerInterval;
 
-        editor.innerText = localStorage.getItem('soundjournal_v12') || "";
+        editor.innerText = localStorage.getItem('soundjournal_v17') || "";
         editor.style.fontSize = sizes[sizeIdx] + 'px';
         updateStats();
 
         editor.addEventListener('input', () => {
-            localStorage.setItem('soundjournal_v12', editor.innerText);
+            localStorage.setItem('soundjournal_v17', editor.innerText);
             updateStats();
         });
 
@@ -92,30 +95,30 @@
             setTimeout(() => { toast.style.display = 'none'; }, 2000);
         }
 
-        // --- IMPROVED GONG SOUND LOGIC ---
-        function playGong() {
+        // --- DEEP GONG AUDIO ---
+        function playDeepGong() {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const masterGain = audioCtx.createGain();
             masterGain.connect(audioCtx.destination);
 
-            // Layered frequencies for a "Gong" timbre
-            const frequencies = [110, 165, 220]; 
+            // Very low fundamental + heavy low overtones
+            const frequencies = [55, 110, 165, 225]; 
             
-            frequencies.forEach(freq => {
+            frequencies.forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 
-                osc.type = 'sine';
+                osc.type = i === 0 ? 'sine' : 'triangle'; // Triangle adds a bit of "metallic" grit
                 osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
                 
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 6); // Long decay
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(i === 0 ? 0.5 : 0.2, audioCtx.currentTime + 0.1); // Slower "thud" attack
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 12); // Extra long fade
                 
                 osc.connect(gain);
                 gain.connect(masterGain);
-                
                 osc.start();
-                osc.stop(audioCtx.currentTime + 6);
+                osc.stop(audioCtx.currentTime + 12);
             });
         }
 
@@ -145,7 +148,8 @@
                         clearInterval(timerInterval);
                         timerDisplay.innerText = "TIMER ENDED";
                         body.classList.add('timer-finished'); 
-                        playGong();
+                        playDeepGong();
+                        setTimeout(() => body.classList.remove('timer-finished'), 8500);
                     } else {
                         timerDisplay.innerText = `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`;
                         secs--;
