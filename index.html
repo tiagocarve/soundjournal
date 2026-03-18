@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <title>Soundjournal | Zen</title>
     <style>
-        /* THE THREE VISUAL MODES */
         :root[data-theme="light"] {
-            --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #93a1a1;
+            --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83;
         }
         :root[data-theme="sepia"] {
-            --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #7a6352;
+            --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636;
         }
         :root[data-theme="dark"] {
-            --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #666;
+            --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999;
         }
 
         body, html {
@@ -21,21 +20,18 @@
             overflow-x: hidden;
         }
 
-        /* Writing Area */
         #writing-area {
             width: 90%; max-width: 650px; margin: 0 auto;
             padding: 120px 20px 250px 20px; outline: none;
             line-height: 1.8; min-height: 80vh;
         }
 
-        /* Top Left: Timer */
         #timer-display {
             position: fixed; top: 25px; left: 25px;
-            font-family: monospace; font-size: 13px;
+            font-family: monospace; font-size: 14px;
             letter-spacing: 1px; font-weight: bold; color: var(--accent);
         }
 
-        /* Top Right: Minimalist Icons */
         #nav-tools {
             position: fixed; top: 20px; right: 20px;
             display: flex; gap: 12px; align-items: center;
@@ -44,18 +40,17 @@
         .zen-circle {
             width: 32px; height: 32px; border-radius: 50%;
             border: 1px solid var(--text); background: transparent;
-            cursor: pointer; opacity: 0.4; transition: 0.3s;
+            cursor: pointer; opacity: 0.5; transition: 0.3s;
             display: flex; align-items: center; justify-content: center;
             font-size: 11px; color: var(--text); text-transform: uppercase;
         }
         .zen-circle:hover { opacity: 1; background: var(--ui); }
 
-        /* Bottom Stats - Increased Visibility */
         #footer {
             position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 20px; background: linear-gradient(transparent, var(--bg));
+            padding: 25px; background: linear-gradient(transparent, var(--bg) 70%);
             text-align: center; font-family: monospace;
-            font-size: 13px; font-weight: 500;
+            font-size: 14px; font-weight: 600;
             color: var(--stats); letter-spacing: 1px;
             pointer-events: none;
         }
@@ -68,11 +63,12 @@
     <div id="timer-display"></div>
 
     <div id="nav-tools">
-        <button class="zen-circle" id="font-btn" title="Change Font">F</button>
-        <button class="zen-circle" id="size-btn" title="Change Size">S</button>
-        <button class="zen-circle" id="timer-btn" title="Set Timer">T</button>
-        <button class="zen-circle" id="theme-btn" title="Cycle Theme">●</button>
-        <button class="zen-circle" id="full-btn" title="Zen Mode">⛶</button>
+        <button class="zen-circle" id="time-btn" title="Insert Timestamp">🕒</button>
+        <button class="zen-circle" id="font-btn" title="Font">F</button>
+        <button class="zen-circle" id="size-btn" title="Size">S</button>
+        <button class="zen-circle" id="timer-btn" title="Timer">T</button>
+        <button class="zen-circle" id="theme-btn" title="Theme">●</button>
+        <button class="zen-circle" id="full-btn" title="Zen">⛶</button>
     </div>
 
     <div id="writing-area" contenteditable="true" spellcheck="false" autofocus></div>
@@ -88,25 +84,18 @@
         
         let fonts = ["'Georgia', serif", "sans-serif", "monospace"];
         let fontIdx = 0;
-        
-        // Granular Sizes: 17, 19, 21, 24
         let sizes = [17, 19, 21, 24];
-        let sizeIdx = 1; // Defaulting to 19px
-        
+        let sizeIdx = 1; 
         let themes = ["light", "sepia", "dark"];
         let themeIdx = 0;
-        
-        let timerSeconds = 0;
         let timerInterval;
 
-        // 1. Initial Load
-        editor.innerText = localStorage.getItem('zen_v3_content') || "";
+        editor.innerText = localStorage.getItem('zen_final_v4') || "";
         editor.style.fontSize = sizes[sizeIdx] + 'px';
         updateStats();
 
-        // 2. Stats Persistence
         editor.addEventListener('input', () => {
-            localStorage.setItem('zen_v3_content', editor.innerText);
+            localStorage.setItem('zen_final_v4', editor.innerText);
             updateStats();
         });
 
@@ -117,7 +106,27 @@
             stats.innerText = `${words} WORDS | ${chars} CHARACTERS`;
         }
 
-        // 3. Icon Actions
+        // New Timestamp Function
+        document.getElementById('time-btn').onclick = () => {
+            const now = new Date();
+            const stamp = `\n[${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}]\n`;
+            
+            // Insert at cursor position
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(document.createTextNode(stamp));
+                // Move cursor to end of stamp
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                editor.innerText += stamp;
+            }
+            updateStats();
+        };
+
         document.getElementById('font-btn').onclick = () => {
             fontIdx = (fontIdx + 1) % fonts.length;
             editor.style.fontFamily = fonts[fontIdx];
@@ -137,7 +146,7 @@
             const mins = prompt("Target minutes:", "20");
             if (mins) {
                 clearInterval(timerInterval);
-                timerSeconds = mins * 60;
+                let timerSeconds = mins * 60;
                 timerInterval = setInterval(() => {
                     if (timerSeconds <= 0) {
                         clearInterval(timerInterval);
@@ -157,7 +166,6 @@
             else document.exitFullscreen();
         };
 
-        // Export (Ctrl + S)
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
