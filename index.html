@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Soundjournal | Zen</title>
+    <style>
+        /* THE THREE VISUAL MODES */
+        :root[data-theme="light"] {
+            --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #93a1a1;
+        }
+        :root[data-theme="sepia"] {
+            --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #7a6352;
+        }
+        :root[data-theme="dark"] {
+            --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #666;
+        }
+
+        body, html {
+            margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
+            height: 100%; transition: all 0.4s ease; font-family: 'Georgia', serif;
+            overflow-x: hidden;
+        }
+
+        /* Writing Area */
+        #writing-area {
+            width: 90%; max-width: 650px; margin: 0 auto;
+            padding: 120px 20px 250px 20px; outline: none;
+            line-height: 1.8; min-height: 80vh;
+        }
+
+        /* Top Left: Timer */
+        #timer-display {
+            position: fixed; top: 25px; left: 25px;
+            font-family: monospace; font-size: 13px;
+            letter-spacing: 1px; font-weight: bold; color: var(--accent);
+        }
+
+        /* Top Right: Minimalist Icons */
+        #nav-tools {
+            position: fixed; top: 20px; right: 20px;
+            display: flex; gap: 12px; align-items: center;
+        }
+
+        .zen-circle {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 1px solid var(--text); background: transparent;
+            cursor: pointer; opacity: 0.4; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; color: var(--text); text-transform: uppercase;
+        }
+        .zen-circle:hover { opacity: 1; background: var(--ui); }
+
+        /* Bottom Stats - Increased Visibility */
+        #footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 20px; background: linear-gradient(transparent, var(--bg));
+            text-align: center; font-family: monospace;
+            font-size: 13px; font-weight: 500;
+            color: var(--stats); letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="timer-display"></div>
+
+    <div id="nav-tools">
+        <button class="zen-circle" id="font-btn" title="Change Font">F</button>
+        <button class="zen-circle" id="size-btn" title="Change Size">S</button>
+        <button class="zen-circle" id="timer-btn" title="Set Timer">T</button>
+        <button class="zen-circle" id="theme-btn" title="Cycle Theme">●</button>
+        <button class="zen-circle" id="full-btn" title="Zen Mode">⛶</button>
+    </div>
+
+    <div id="writing-area" contenteditable="true" spellcheck="false" autofocus></div>
+
+    <div id="footer">
+        <span id="stats">0 WORDS | 0 CHARACTERS</span>
+    </div>
+
+    <script>
+        const editor = document.getElementById('writing-area');
+        const stats = document.getElementById('stats');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        let fonts = ["'Georgia', serif", "sans-serif", "monospace"];
+        let fontIdx = 0;
+        
+        // Granular Sizes: 17, 19, 21, 24
+        let sizes = [17, 19, 21, 24];
+        let sizeIdx = 1; // Defaulting to 19px
+        
+        let themes = ["light", "sepia", "dark"];
+        let themeIdx = 0;
+        
+        let timerSeconds = 0;
+        let timerInterval;
+
+        // 1. Initial Load
+        editor.innerText = localStorage.getItem('zen_v3_content') || "";
+        editor.style.fontSize = sizes[sizeIdx] + 'px';
+        updateStats();
+
+        // 2. Stats Persistence
+        editor.addEventListener('input', () => {
+            localStorage.setItem('zen_v3_content', editor.innerText);
+            updateStats();
+        });
+
+        function updateStats() {
+            const text = editor.innerText.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const chars = editor.innerText.length;
+            stats.innerText = `${words} WORDS | ${chars} CHARACTERS`;
+        }
+
+        // 3. Icon Actions
+        document.getElementById('font-btn').onclick = () => {
+            fontIdx = (fontIdx + 1) % fonts.length;
+            editor.style.fontFamily = fonts[fontIdx];
+        };
+
+        document.getElementById('size-btn').onclick = () => {
+            sizeIdx = (sizeIdx + 1) % sizes.length;
+            editor.style.fontSize = sizes[sizeIdx] + 'px';
+        };
+
+        document.getElementById('theme-btn').onclick = () => {
+            themeIdx = (themeIdx + 1) % themes.length;
+            document.documentElement.setAttribute('data-theme', themes[themeIdx]);
+        };
+
+        document.getElementById('timer-btn').onclick = () => {
+            const mins = prompt("Target minutes:", "20");
+            if (mins) {
+                clearInterval(timerInterval);
+                timerSeconds = mins * 60;
+                timerInterval = setInterval(() => {
+                    if (timerSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        timerDisplay.innerText = "TARGET REACHED";
+                    } else {
+                        const m = Math.floor(timerSeconds / 60);
+                        const s = timerSeconds % 60;
+                        timerDisplay.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                        timerSeconds--;
+                    }
+                }, 1000);
+            }
+        };
+
+        document.getElementById('full-btn').onclick = () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        // Export (Ctrl + S)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                const blob = new Blob([editor.innerText], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `Soundjournal-${new Date().toISOString().slice(0,10)}.txt`;
+                a.click();
+            }
+        });
+    </script>
+</body>
+</html>
