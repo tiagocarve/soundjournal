@@ -4,64 +4,38 @@
     <meta charset="UTF-8">
     <title>Soundjournal | Zen</title>
     <style>
-        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83; }
-        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636; }
-        :root[data-theme="dark"] { --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999; }
+        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83; --pulse: #eee8d5; }
+        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636; --pulse: #eadaaf; }
+        :root[data-theme="dark"] { --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999; --pulse: #333; }
 
         body, html { 
             margin: 0; padding: 0; background-color: var(--bg); color: var(--text); 
-            height: 100%; width: 100%; transition: all 0.4s ease; 
+            height: 100%; width: 100%; transition: background-color 2s ease;
             font-family: 'Georgia', serif; overflow: hidden;
         }
 
-        /* THE SHIELD: Keeps the top margin solid */
-        #header-shield {
-            position: fixed; top: 0; left: 0; right: 0;
-            height: 100px; /* This defines your "Permanent" top margin */
-            background-color: var(--bg);
-            z-index: 100;
-            transition: background-color 0.4s ease;
+        /* 8-Second Pulse (2 cycles of 4 seconds) */
+        @keyframes zenPulse {
+            0% { background-color: var(--bg); }
+            50% { background-color: var(--pulse); }
+            100% { background-color: var(--bg); }
         }
-        
-        #scroll-container {
-            height: 100vh;
-            width: 100%;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        .timer-finished { animation: zenPulse 4s ease-in-out 2; } /* '2' means it stops after 8s */
 
-        #writing-area { 
-            width: 90%; max-width: 650px; 
-            padding: 120px 20px 40vh 20px; /* 120px matches/exceeds shield height */
-            outline: none; 
-            line-height: 1.8; 
-            min-height: 100%;
-            box-sizing: border-box;
-            z-index: 10;
-        }
-
+        #header-shield { position: fixed; top: 0; left: 0; right: 0; height: 100px; background-color: inherit; z-index: 100; }
+        #scroll-container { height: 100vh; width: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        #writing-area { width: 90%; max-width: 650px; padding: 120px 20px 40vh 20px; outline: none; line-height: 1.8; min-height: 100%; box-sizing: border-box; z-index: 10; }
         #timer-display { position: fixed; top: 25px; left: 25px; font-family: monospace; font-size: 14px; font-weight: bold; color: var(--accent); z-index: 101; }
         #nav-tools { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; align-items: center; z-index: 101; }
-
-        .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: var(--bg); cursor: pointer; opacity: 0.5; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text); }
+        .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.5; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text); }
         .zen-circle:hover { opacity: 1; background: var(--ui); }
-
         #toast { position: fixed; top: 70px; right: 20px; background: var(--accent); color: white; padding: 8px 15px; border-radius: 5px; font-family: sans-serif; font-size: 12px; display: none; z-index: 1000; }
-
-        #footer { 
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            padding: 25px; background: linear-gradient(transparent, var(--bg) 50%, var(--bg)); 
-            text-align: center; font-family: monospace; font-size: 14px; color: var(--stats); 
-            pointer-events: none; z-index: 100;
-        }
-        
+        #footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 25px; background: linear-gradient(transparent, var(--bg) 50%, var(--bg)); text-align: center; font-family: monospace; font-size: 14px; color: var(--stats); pointer-events: none; z-index: 100; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--ui); border-radius: 10px; }
     </style>
 </head>
-<body>
+<body id="body-main">
 
     <div id="header-shield"></div>
     <div id="timer-display"></div>
@@ -88,6 +62,7 @@
         const editor = document.getElementById('writing-area');
         const stats = document.getElementById('stats');
         const timerDisplay = document.getElementById('timer-display');
+        const body = document.getElementById('body-main');
         const toast = document.getElementById('toast');
         
         let fonts = ["'Georgia', serif", "sans-serif", "monospace"], fontIdx = 0;
@@ -95,13 +70,12 @@
         let themes = ["light", "sepia", "dark"], themeIdx = 0;
         let timerInterval;
 
-        // Load content - Using v10 for this major layout fix
-        editor.innerText = localStorage.getItem('soundjournal_v10') || "";
+        editor.innerText = localStorage.getItem('soundjournal_v12') || "";
         editor.style.fontSize = sizes[sizeIdx] + 'px';
         updateStats();
 
         editor.addEventListener('input', () => {
-            localStorage.setItem('soundjournal_v10', editor.innerText);
+            localStorage.setItem('soundjournal_v12', editor.innerText);
             updateStats();
         });
 
@@ -118,12 +92,35 @@
             setTimeout(() => { toast.style.display = 'none'; }, 2000);
         }
 
-        document.getElementById('copy-btn').onclick = () => {
-            const text = editor.innerText;
-            if(!text) { showToast("Nothing to copy!"); return; }
-            navigator.clipboard.writeText(text).then(() => {
-                showToast("Copied! Ready to paste on iPhone.");
+        // --- IMPROVED GONG SOUND LOGIC ---
+        function playGong() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+
+            // Layered frequencies for a "Gong" timbre
+            const frequencies = [110, 165, 220]; 
+            
+            frequencies.forEach(freq => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 6); // Long decay
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 6);
             });
+        }
+
+        document.getElementById('copy-btn').onclick = () => {
+            navigator.clipboard.writeText(editor.innerText).then(() => showToast("Copied to Clipboard"));
         };
 
         document.getElementById('dl-btn').onclick = () => {
@@ -134,7 +131,27 @@
             a.href = URL.createObjectURL(blob);
             a.download = `Soundjournal-${now.toISOString().slice(0,10)}-${timeStr}.txt`;
             a.click();
-            showToast("Saved to downloads");
+            showToast("Saved");
+        };
+
+        document.getElementById('timer-btn').onclick = () => {
+            const mins = prompt("Target minutes:", "20");
+            if (mins) {
+                body.classList.remove('timer-finished');
+                clearInterval(timerInterval);
+                let secs = mins * 60;
+                timerInterval = setInterval(() => {
+                    if (secs <= 0) {
+                        clearInterval(timerInterval);
+                        timerDisplay.innerText = "TIMER ENDED";
+                        body.classList.add('timer-finished'); 
+                        playGong();
+                    } else {
+                        timerDisplay.innerText = `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`;
+                        secs--;
+                    }
+                }, 1000);
+            }
         };
 
         document.getElementById('time-btn').onclick = () => {
@@ -147,17 +164,6 @@
         document.getElementById('font-btn').onclick = () => { fontIdx = (fontIdx + 1) % fonts.length; editor.style.fontFamily = fonts[fontIdx]; };
         document.getElementById('size-btn').onclick = () => { sizeIdx = (sizeIdx + 1) % sizes.length; editor.style.fontSize = sizes[sizeIdx] + 'px'; };
         document.getElementById('theme-btn').onclick = () => { themeIdx = (themeIdx + 1) % themes.length; document.documentElement.setAttribute('data-theme', themes[themeIdx]); };
-        document.getElementById('timer-btn').onclick = () => {
-            const mins = prompt("Target minutes:", "20");
-            if (mins) {
-                clearInterval(timerInterval);
-                let secs = mins * 60;
-                timerInterval = setInterval(() => {
-                    if (secs <= 0) { clearInterval(timerInterval); timerDisplay.innerText = "DONE"; }
-                    else { timerDisplay.innerText = `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`; secs--; }
-                }, 1000);
-            }
-        };
         document.getElementById('full-btn').onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
     </script>
 </body>
