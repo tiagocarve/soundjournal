@@ -2,173 +2,262 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Soundjournal | Deep Zen</title>
+    <title>Soundjournal | Absolute</title>
     <style>
-        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --stats: #657b83; --pulse-bg: #e8dfc4; --pulse-text: #268bd2; }
-        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --stats: #5b4636; --pulse-bg: #dcc8a0; --pulse-text: #8c6c4f; }
-        /* Darker Dark Mode: Pulses to pure black while text brightens */
-        :root[data-theme="dark"] { --bg: #121212; --text: #a0a0a0; --ui: #1a1a1a; --accent: #0088cc; --stats: #999; --pulse-bg: #000000; --pulse-text: #ffffff; }
+        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --wave: #268bd2; --pulse: #e8dfc4; }
+        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaaf; --accent: #8c6c4f; --wave: #8c6c4f; --pulse: #dcc8a0; }
+        :root[data-theme="dark"] { --bg: #1a1a1a; --text: #a0a0a0; --ui: #2a2a2a; --accent: #0088cc; --wave: #444; --pulse: #333; }
+        :root[data-theme="oled"] { --bg: #000000; --text: #888888; --ui: #111111; --accent: #ffffff; --wave: #333; --pulse: #222; }
 
-        body, html { 
-            margin: 0; padding: 0; background-color: var(--bg); color: var(--text); 
-            height: 100%; width: 100%; transition: all 1.5s ease;
-            font-family: 'Georgia', serif; overflow: hidden;
-        }
+        * { transition: background-color 1.5s ease, color 1.5s ease, border-color 1.5s ease; }
 
-        /* 8-Second Environmental Pulse */
-        @keyframes zenPulse {
-            0% { background-color: var(--bg); color: var(--text); }
-            50% { background-color: var(--pulse-bg); color: var(--pulse-text); }
-            100% { background-color: var(--bg); color: var(--text); }
-        }
+        body, html { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); height: 100%; width: 100%; font-family: 'Georgia', serif; overflow: hidden; }
 
-        .timer-finished { animation: zenPulse 4s ease-in-out 2; }
-        .timer-finished #timer-display { color: var(--pulse-text); font-weight: bold; }
+        #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 75px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 101; background: var(--bg); box-sizing: border-box; }
+        
+        #player-zone { display: none; align-items: center; gap: 10px; flex: 1; max-width: 500px; }
+        #audio-time { font-family: monospace; font-size: 10px; min-width: 75px; opacity: 0.7; }
+        #wave-wrapper { position: relative; flex: 1; height: 22px; cursor: pointer; background: var(--ui); border-radius: 2px; overflow: hidden; }
+        #wave-canvas { width: 100%; height: 100%; }
+        #play-cursor { position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: var(--accent); pointer-events: none; }
+        
+        #vol-container { display: flex; align-items: center; gap: 5px; }
+        #vol-slider { width: 50px; height: 2px; appearance: none; background: var(--ui); outline: none; cursor: pointer; }
+        #vol-slider::-webkit-slider-thumb { appearance: none; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
 
-        #header-shield { position: fixed; top: 0; left: 0; right: 0; height: 100px; background-color: inherit; z-index: 100; }
-        #scroll-container { height: 100vh; width: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
-        #writing-area { width: 90%; max-width: 650px; padding: 120px 20px 40vh 20px; outline: none; line-height: 1.8; min-height: 100%; box-sizing: border-box; z-index: 10; }
-        #timer-display { position: fixed; top: 25px; left: 25px; font-family: monospace; font-size: 14px; color: var(--accent); z-index: 101; }
-        #nav-tools { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; align-items: center; z-index: 101; }
-        .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.5; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text); }
+        #nav-tools { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex: 1; }
+        .zen-circle { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.4; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text); padding: 0; }
         .zen-circle:hover { opacity: 1; background: var(--ui); }
-        #toast { position: fixed; top: 70px; right: 20px; background: var(--accent); color: white; padding: 8px 15px; border-radius: 5px; font-family: sans-serif; font-size: 12px; display: none; z-index: 1000; }
-        #footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 25px; background: linear-gradient(transparent, var(--bg) 50%, var(--bg)); text-align: center; font-family: monospace; font-size: 14px; color: var(--stats); pointer-events: none; z-index: 100; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: var(--ui); border-radius: 10px; }
+        
+        .tape-btn-wrap { position: relative; width: 28px; height: 28px; }
+        #audio-upload { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+
+        #scroll-container { height: 100vh; width: 100%; overflow-y: auto; }
+        #writing-area { width: 90%; max-width: 650px; margin: 0 auto; padding: 130px 20px 40vh 20px; outline: none; line-height: 1.8; min-height: 100vh; box-sizing: border-box; font-size: 19px; }
+
+        /* Rapid pulse for timer end */
+        @keyframes alarmPulse { 
+            0% { background-color: var(--bg); } 
+            50% { background-color: var(--pulse); } 
+            100% { background-color: var(--bg); } 
+        }
+        .timer-finished { animation: alarmPulse 1.5s ease-in-out infinite; transition: none !important; }
+        .timer-finished #top-bar { transition: none !important; background-color: transparent; }
+        
+        #footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(transparent, var(--bg) 60%); pointer-events: none; z-index: 50; }
+        #timer-display { font-family: monospace; font-size: 14px; color: var(--accent); padding-left: 20px; font-weight: bold; }
+        #stats { font-family: monospace; font-size: 12px; opacity: 0.8; padding-right: 20px; letter-spacing: 1px; color: var(--text); flex-grow: 1; text-align: right; }
+        #stats b { color: var(--accent); }
     </style>
 </head>
 <body id="body-main">
 
-    <div id="header-shield"></div>
-    <div id="timer-display"></div>
-    <div id="toast">Copied to Clipboard</div>
+    <div id="top-bar">
+        <div id="player-zone">
+            <button class="zen-circle" id="play-pause-btn">▶</button>
+            <button class="zen-circle" id="stop-btn">■</button>
+            <div id="wave-wrapper">
+                <canvas id="wave-canvas"></canvas>
+                <div id="play-cursor"></div>
+            </div>
+            <div id="audio-time">0:00 / 0:00</div>
+            <div id="vol-container">
+                <input type="range" id="vol-slider" min="0" max="1" step="0.05">
+            </div>
+        </div>
 
-    <div id="nav-tools">
-        <button class="zen-circle" id="copy-btn" title="Copy All">⎗</button>
-        <button class="zen-circle" id="dl-btn" title="Download">↓</button>
-        <button class="zen-circle" id="time-btn" title="Time">🕒</button>
-        <button class="zen-circle" id="font-btn" title="Font">F</button>
-        <button class="zen-circle" id="size-btn" title="Size">S</button>
-        <button class="zen-circle" id="timer-btn" title="Timer">T</button>
-        <button class="zen-circle" id="theme-btn" title="Theme">●</button>
-        <button class="zen-circle" id="full-btn" title="Zen">⛶</button>
+        <div id="nav-tools">
+            <div class="tape-btn-wrap">
+                <input type="file" id="audio-upload" accept="audio/*">
+                <button class="zen-circle">♫</button>
+            </div>
+            <button class="zen-circle" id="time-btn" title="Date-Timestamp">🕒</button>
+            <button class="zen-circle" id="font-btn" title="Font Style">F</button>
+            <button class="zen-circle" id="size-btn" title="Font Size">S</button>
+            <button class="zen-circle" id="timer-btn" title="Set Timer">T</button>
+            <button class="zen-circle" id="theme-btn" title="Theme">●</button>
+            <button class="zen-circle" id="full-btn" title="Fullscreen">⛶</button>
+            <button class="zen-circle" id="copy-btn" title="Copy">⎗</button>
+            <button class="zen-circle" id="dl-btn" title="Save">↓</button>
+        </div>
     </div>
 
     <div id="scroll-container">
         <div id="writing-area" contenteditable="true" spellcheck="false" autofocus></div>
     </div>
 
-    <div id="footer"><span id="stats">0 WORDS | 0 CHARACTERS</span></div>
+    <div id="footer">
+        <div id="timer-display"></div>
+        <div id="stats"><b>0</b> WORDS &nbsp;|&nbsp; <b>0</b> CHARS</div>
+    </div>
 
     <script>
         const editor = document.getElementById('writing-area');
-        const stats = document.getElementById('stats');
+        const canvas = document.getElementById('wave-canvas');
+        const cursor = document.getElementById('play-cursor');
+        const waveWrapper = document.getElementById('wave-wrapper');
+        const playBtn = document.getElementById('play-pause-btn');
+        const audioTime = document.getElementById('audio-time');
         const timerDisplay = document.getElementById('timer-display');
+        const volSlider = document.getElementById('vol-slider');
+        const playerZone = document.getElementById('player-zone');
         const body = document.getElementById('body-main');
-        const toast = document.getElementById('toast');
         
-        let fonts = ["'Georgia', serif", "sans-serif", "monospace"], fontIdx = 0;
-        let sizes = [17, 19, 21, 24], sizeIdx = 1; 
-        let themes = ["light", "sepia", "dark"], themeIdx = 0;
-        let timerInterval;
+        let player = new Audio();
+        let audioCtx, timerInterval;
+        
+        const fontStack = ["'Georgia', serif", "'Courier New', monospace", "'Helvetica Neue', sans-serif", "'Palatino', serif", "'Avenir Next', sans-serif"];
+        let currentFont = 0;
+        const sizeStack = [15, 17, 19, 21, 24, 28];
+        let currentSize = 2;
 
-        editor.innerText = localStorage.getItem('soundjournal_v17') || "";
-        editor.style.fontSize = sizes[sizeIdx] + 'px';
-        updateStats();
+        // Init Volume
+        volSlider.value = localStorage.getItem('sj_vol') || 0.8;
 
-        editor.addEventListener('input', () => {
-            localStorage.setItem('soundjournal_v17', editor.innerText);
-            updateStats();
-        });
-
-        function updateStats() {
+        const updateStats = () => {
             const text = editor.innerText.trim();
             const words = text ? text.split(/\s+/).length : 0;
             const chars = editor.innerText.length;
-            stats.innerText = `${words} WORDS | ${chars} CHARACTERS`;
-        }
+            document.getElementById('stats').innerHTML = `<b>${words}</b> WORDS &nbsp;|&nbsp; <b>${chars}</b> CHARS`;
+            localStorage.setItem('soundjournal_v27', editor.innerText);
+        };
+        editor.innerText = localStorage.getItem('soundjournal_v27') || "";
+        editor.addEventListener('input', updateStats);
+        updateStats();
 
-        function showToast(msg) {
-            toast.innerText = msg;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2000);
-        }
-
-        // --- DEEP GONG AUDIO ---
-        function playDeepGong() {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const masterGain = audioCtx.createGain();
-            masterGain.connect(audioCtx.destination);
-
-            // Very low fundamental + heavy low overtones
-            const frequencies = [55, 110, 165, 225]; 
-            
-            frequencies.forEach((freq, i) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.type = i === 0 ? 'sine' : 'triangle'; // Triangle adds a bit of "metallic" grit
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                
-                gain.gain.setValueAtTime(0, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(i === 0 ? 0.5 : 0.2, audioCtx.currentTime + 0.1); // Slower "thud" attack
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 12); // Extra long fade
-                
-                osc.connect(gain);
-                gain.connect(masterGain);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 12);
-            });
-        }
-
-        document.getElementById('copy-btn').onclick = () => {
-            navigator.clipboard.writeText(editor.innerText).then(() => showToast("Copied to Clipboard"));
+        const formatTime = (s) => {
+            const mins = Math.floor(s / 60);
+            const secs = Math.floor(s % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
         };
 
+        document.getElementById('audio-upload').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const arrayBuffer = await file.arrayBuffer();
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            drawFullWaveform(audioBuffer);
+            player.src = URL.createObjectURL(file);
+            player.volume = volSlider.value;
+            player.play();
+            playBtn.innerText = "||";
+            playerZone.style.display = 'flex';
+        };
+
+        volSlider.oninput = () => { 
+            player.volume = volSlider.value; 
+            localStorage.setItem('sj_vol', volSlider.value);
+        };
+
+        function drawFullWaveform(buffer) {
+            const ctx = canvas.getContext('2d');
+            const data = buffer.getChannelData(0);
+            const step = Math.ceil(data.length / canvas.width);
+            const amp = canvas.height / 2;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--wave').trim();
+            for (let i = 0; i < canvas.width; i++) {
+                let min = 1.0, max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+            }
+        }
+
+        playBtn.onclick = () => {
+            if (player.paused) { player.play(); playBtn.innerText = "||"; }
+            else { player.pause(); playBtn.innerText = "▶"; }
+        };
+
+        document.getElementById('stop-btn').onclick = () => {
+            player.pause(); player.currentTime = 0; playBtn.innerText = "▶";
+        };
+
+        waveWrapper.onclick = (e) => {
+            const rect = waveWrapper.getBoundingClientRect();
+            player.currentTime = ((e.clientX - rect.left) / rect.width) * player.duration;
+        };
+
+        player.ontimeupdate = () => { 
+            cursor.style.left = (player.currentTime / player.duration) * 100 + "%";
+            audioTime.innerText = `${formatTime(player.currentTime)} / ${formatTime(player.duration || 0)}`;
+        };
+
+        document.getElementById('time-btn').onclick = () => {
+            const now = new Date();
+            const ts = `\n[${now.toLocaleDateString()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}]\n`;
+            document.execCommand('insertText', false, ts);
+        };
+
+        document.getElementById('font-btn').onclick = () => {
+            currentFont = (currentFont + 1) % fontStack.length;
+            editor.style.fontFamily = fontStack[currentFont];
+        };
+
+        document.getElementById('size-btn').onclick = () => {
+            currentSize = (currentSize + 1) % sizeStack.length;
+            editor.style.fontSize = sizeStack[currentSize] + 'px';
+        };
+
+        document.getElementById('full-btn').onclick = () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        document.getElementById('theme-btn').onclick = () => {
+            const themes = ["light", "sepia", "dark", "oled"];
+            const current = document.documentElement.getAttribute('data-theme');
+            document.documentElement.setAttribute('data-theme', themes[(themes.indexOf(current) + 1) % themes.length]);
+        };
+
+        document.getElementById('copy-btn').onclick = () => navigator.clipboard.writeText(editor.innerText);
+        
         document.getElementById('dl-btn').onclick = () => {
             const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
             const timeStr = now.getHours().toString().padStart(2, '0') + "h" + now.getMinutes().toString().padStart(2, '0');
             const blob = new Blob([editor.innerText], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `Soundjournal-${now.toISOString().slice(0,10)}-${timeStr}.txt`;
+            a.download = `Soundjournal-${dateStr}-${timeStr}.txt`;
             a.click();
-            showToast("Saved");
         };
 
         document.getElementById('timer-btn').onclick = () => {
-            const mins = prompt("Target minutes:", "20");
+            const mins = prompt("Minutes:", "20");
             if (mins) {
-                body.classList.remove('timer-finished');
-                clearInterval(timerInterval);
                 let secs = mins * 60;
+                clearInterval(timerInterval);
                 timerInterval = setInterval(() => {
                     if (secs <= 0) {
                         clearInterval(timerInterval);
-                        timerDisplay.innerText = "TIMER ENDED";
-                        body.classList.add('timer-finished'); 
-                        playDeepGong();
-                        setTimeout(() => body.classList.remove('timer-finished'), 8500);
+                        timerDisplay.innerText = "DONE";
+                        body.classList.add('timer-finished');
+                        const gCtx = new AudioContext();
+                        [55, 110, 165].forEach(f => {
+                            const o = gCtx.createOscillator(); const v = gCtx.createGain();
+                            o.frequency.value = f; v.gain.exponentialRampToValueAtTime(0.0001, gCtx.currentTime + 10);
+                            o.connect(v); v.connect(gCtx.destination); o.start(); o.stop(gCtx.currentTime + 10);
+                        });
+                        // Stop pulsing after 10 seconds or when user clicks
+                        setTimeout(stopAlarm, 10000);
                     } else {
-                        timerDisplay.innerText = `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`;
+                        timerDisplay.innerText = formatTime(secs);
                         secs--;
                     }
                 }, 1000);
             }
         };
 
-        document.getElementById('time-btn').onclick = () => {
-            const now = new Date();
-            const stamp = `\n[${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}]\n`;
-            document.execCommand('insertText', false, stamp);
-            updateStats();
-        };
-
-        document.getElementById('font-btn').onclick = () => { fontIdx = (fontIdx + 1) % fonts.length; editor.style.fontFamily = fonts[fontIdx]; };
-        document.getElementById('size-btn').onclick = () => { sizeIdx = (sizeIdx + 1) % sizes.length; editor.style.fontSize = sizes[sizeIdx] + 'px'; };
-        document.getElementById('theme-btn').onclick = () => { themeIdx = (themeIdx + 1) % themes.length; document.documentElement.setAttribute('data-theme', themes[themeIdx]); };
-        document.getElementById('full-btn').onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); };
+        function stopAlarm() {
+            body.classList.remove('timer-finished');
+            timerDisplay.innerText = "";
+        }
+        body.addEventListener('mousedown', stopAlarm);
     </script>
 </body>
 </html>
