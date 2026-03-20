@@ -11,10 +11,10 @@
         header { padding: 18px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #050505; }
         #file-title { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase; }
         
-        .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; font-weight: bold; padding: 8px 15px; border-radius: 4px; transition: 0.1s; }
+        .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; font-weight: bold; padding: 8px 15px; border-radius: 4px; transition: 0.1s; outline: none; }
         .btn:hover { background: #333; border-color: #666; }
         .btn-primary { background: var(--text-bright); color: #000; border: none; }
-        .btn-wf { background: #2a2a2a; color: #00ffcc; border: 1px solid #004433; }
+        .btn-wf { background: #1a1a1a; color: #00ffcc; border: 1px solid #004433; }
 
         main { display: flex; flex: 1; overflow: hidden; }
         
@@ -27,12 +27,12 @@
         #zen-editor { background: transparent; border: none; color: var(--text-bright); width: 100%; height: 100%; outline: none; font-size: 21px; line-height: 1.7; resize: none; font-family: 'Georgia', serif; }
 
         #work-area { flex: 1; display: flex; flex-direction: column; padding: 25px 40px; background: #000; }
-        #player-box { background: #080808; height: 50px; position: relative; border: 1px solid #1a1a1a; cursor: crosshair; overflow: hidden; border-radius: 3px; }
-        #wave-canvas { width: 100%; height: 100%; opacity: 0.4; }
-        #play-head { position: absolute; top: 0; left: 0; width: 1px; height: 100%; background: var(--accent); pointer-events: none; }
+        #player-box { background: #080808; height: 80px; position: relative; border: 1px solid #1a1a1a; cursor: crosshair; overflow: hidden; border-radius: 3px; }
+        #wave-canvas { width: 100%; height: 100%; }
+        #play-head { position: absolute; top: 0; left: 0; width: 1px; height: 100%; background: var(--accent); pointer-events: none; box-shadow: 0 0 5px #fff; }
         
         #transport { display: flex; align-items: center; gap: 12px; margin: 15px 0; border-bottom: 1px solid #1a1a1a; padding-bottom: 15px; }
-        #time-display { font-size: 15px; color: var(--text-bright); font-family: monospace; }
+        #time-display { font-size: 15px; color: var(--text-bright); font-family: monospace; font-weight: bold; }
 
         #notes-list { flex: 1; overflow-y: auto; }
         .note-row { display: flex; gap: 15px; margin-bottom: 12px; align-items: center; }
@@ -45,18 +45,18 @@
 
 <div id="zen-overlay">
     <div style="display:flex; justify-content: flex-end; margin-bottom: 30px;"><button class="btn" onclick="toggleZen()">✕ CLOSE</button></div>
-    <textarea id="zen-editor" spellcheck="false" placeholder="Describe the soundscape..."></textarea>
+    <textarea id="zen-editor" spellcheck="false" placeholder="Describe the texture..."></textarea>
 </div>
 
 <header>
-    <div id="file-title">FIELD LOG // <span id="cur-file-ui">READY</span></div>
+    <div id="file-title">SDJNAL // <span id="cur-file-ui">READY</span></div>
     <div style="display:flex; gap:8px;">
         <input type="file" id="load-audio" accept="audio/*" style="display:none" onchange="handleAudioLoad(this)">
         <input type="file" id="load-md" accept=".md,.txt" style="display:none" onchange="handleMdLoad(this)">
         <button class="btn" onclick="triggerFile('load-audio')">+ AUDIO</button>
         <button class="btn" onclick="triggerFile('load-md')">+ LOG</button>
-        <button class="btn btn-wf" onclick="copyWorkflowyLine()">COPY WORKFLOWY LINE</button>
-        <button class="btn" onclick="copyToClipboard()">COPY PLAIN TEXT</button>
+        <button class="btn btn-wf" id="wf-btn" onclick="copyWorkflowyLine()">COPY WORKFLOWY LINE</button>
+        <button class="btn" onclick="copyToClipboard()">COPY CLEAN TEXT</button>
         <button class="btn btn-primary" onclick="exportLog()">SAVE MD</button>
     </div>
 </header>
@@ -65,24 +65,24 @@
     <section id="log-meta">
         <div>
             <label>Device</label>
-            <input type="text" id="m-device" placeholder="e.g. ZoomH5" oninput="updateTitlePrefix()">
-            <label>Title</label>
-            <input type="text" id="m-title">
+            <input type="text" id="m-device" placeholder="e.g. ZoomH5" oninput="updateAutoTitle()">
+            <label>Auto-Title</label>
+            <input type="text" id="m-title" placeholder="YYYYMMDD_HHMM_MMSS">
             <label>Microphones</label>
             <input type="text" id="m-mics">
             <label>Location</label>
             <input type="text" id="m-loc">
             <label>Tags</label>
-            <input type="text" id="m-tags" placeholder="#nature, #drone">
+            <input type="text" id="m-tags" placeholder="#nature #drone">
         </div>
         <button class="btn" onclick="toggleZen()" style="margin-top: 10px; border-color: #333;">✎ ZEN DESCRIPTION</button>
-        <button class="btn" onclick="renameAndDownloadAudio()" id="rename-btn" style="display:none; margin-top: 5px;">EXPORT RENAMED WAV</button>
+        <button class="btn" onclick="renameAndDownloadAudio()" id="rename-btn" style="display:none; margin-top: 5px; color: #666;">SAVE RENAMED WAV</button>
     </section>
 
     <section id="work-area">
         <div id="player-box" onclick="seek(event)"><canvas id="wave-canvas"></canvas><div id="play-head"></div></div>
         <div id="transport">
-            <button class="btn" onclick="togglePlay()" id="p-btn" style="min-width: 60px;">PLAY</button>
+            <button class="btn" onclick="togglePlay()" id="p-btn" style="min-width: 80px;">PLAY</button>
             <button class="btn" onclick="jumpRelative(-5)">« 5S</button>
             <button class="btn" onclick="stopAudio()">STOP</button>
             <button class="btn" onclick="addNote()" style="color:var(--text-bright); margin-left:10px;">+ MARK (N)</button>
@@ -94,19 +94,62 @@
 
 <script>
     let currentAudioBlob = null; let audio = new Audio(); let notes = [];
+    let audioContext, audioBuffer;
+    let fileStamp = "";
     const canvas = document.getElementById('wave-canvas'); const ctx = canvas.getContext('2d');
 
     function triggerFile(id) { document.getElementById(id).click(); }
 
-    function handleAudioLoad(input) {
+    async function handleAudioLoad(input) {
         const file = input.files[0]; if (!file) return;
-        currentAudioBlob = file; audio.src = URL.createObjectURL(file);
+        currentAudioBlob = file;
+        const url = URL.createObjectURL(file);
+        audio.src = url;
+
+        // Immediately set the date stamp from metadata
         const d = new Date(file.lastModified);
-        const stamp = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
+        fileStamp = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
+        
         document.getElementById('cur-file-ui').innerText = file.name.toUpperCase();
-        document.getElementById('m-title').value = `${stamp}_${file.name.split('.')[0]}`;
-        document.getElementById('rename-btn').style.display = 'block';
-        audio.onloadedmetadata = () => { drawWave(); update(); };
+        
+        // Process Waveform
+        const arrayBuffer = await file.arrayBuffer();
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        drawRealWave(audioBuffer);
+
+        audio.onloadedmetadata = () => {
+            updateAutoTitle();
+            document.getElementById('rename-btn').style.display = 'block';
+            update();
+        };
+    }
+
+    function updateAutoTitle() {
+        if (!fileStamp) return;
+        const dev = document.getElementById('m-device').value.replace(/\s+/g, '');
+        const durRaw = Math.floor(audio.duration || 0);
+        const durStamp = `${Math.floor(durRaw/60).toString().padStart(2,'0')}${(durRaw%60).toString().padStart(2,'0')}`;
+        const prefix = dev ? `${dev}_` : "";
+        document.getElementById('m-title').value = `${prefix}${fileStamp}_${durStamp}`;
+    }
+
+    function drawRealWave(buffer) {
+        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+        const data = buffer.getChannelData(0);
+        const step = Math.ceil(data.length / canvas.width);
+        const amp = canvas.height / 2;
+        ctx.fillStyle = '#444';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for(let i=0; i < canvas.width; i++) {
+            let min = 1.0, max = -1.0;
+            for (let j=0; j<step; j++) {
+                const datum = data[(i*step)+j];
+                if (datum < min) min = datum;
+                if (datum > max) max = datum;
+            }
+            ctx.fillRect(i, (1+min)*amp, 1, Math.max(1, (max-min)*amp));
+        }
     }
 
     function handleMdLoad(input) {
@@ -132,51 +175,66 @@
     }
 
     function copyWorkflowyLine() {
-        const dev = document.getElementById('m-device').value || "UNK";
         const title = document.getElementById('m-title').value;
         const tags = document.getElementById('m-tags').value;
-        const line = `[${dev}] ${title} | ${tags}`;
-        navigator.clipboard.writeText(line).then(() => alert("Workflowy line copied."));
+        const dur = fmt(audio.duration || 0);
+        // Format: [DEVICE] YYYYMMDD_HHMM_MMSS (DURATION) | TAGS
+        const line = `${title} (${dur}) | ${tags}`;
+        navigator.clipboard.writeText(line).then(() => {
+            const btn = document.getElementById('wf-btn');
+            btn.innerText = "COPIED!";
+            setTimeout(() => btn.innerText = "COPY WORKFLOWY LINE", 1000);
+        });
     }
 
     function copyToClipboard() {
-        const text = `TITLE: ${document.getElementById('m-title').value}\nDEVICE: ${document.getElementById('m-device').value}\nDESCRIPTION: ${document.getElementById('zen-editor').value}\n\nNOTES:\n${notes.map(n => `${fmt(n.time)} - ${n.text}`).join('\n')}`;
-        navigator.clipboard.writeText(text).then(() => alert("Plain text copied."));
+        const text = `TITLE: ${document.getElementById('m-title').value}\nDURATION: ${fmt(audio.duration)}\nLOCATION: ${document.getElementById('m-loc').value}\nDESCRIPTION: ${document.getElementById('zen-editor').value}\n\nNOTES:\n${notes.map(n => `${fmt(n.time)} - ${n.text}`).join('\n')}`;
+        navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard."));
     }
 
-    // Standard control functions
-    function togglePlay() { audio.paused ? audio.play() : audio.pause(); update(); }
+    function togglePlay() { 
+        if(audio.paused) { audio.play(); document.getElementById('p-btn').innerText = "PAUSE"; } 
+        else { audio.pause(); document.getElementById('p-btn').innerText = "PLAY"; } 
+        update(); 
+    }
+
     function jumpRelative(sec) { audio.currentTime = Math.max(0, audio.currentTime + sec); update(); }
-    function stopAudio() { audio.pause(); audio.currentTime = 0; update(); }
+    function stopAudio() { audio.pause(); audio.currentTime = 0; document.getElementById('p-btn').innerText = "PLAY"; update(); }
+    
     function update() {
         const cur = audio.currentTime; const dur = audio.duration || 0;
         document.getElementById('time-display').innerText = `${fmt(cur)} / ${fmt(dur)}`;
         document.getElementById('play-head').style.left = (cur / dur) * 100 + "%";
         if (!audio.paused) requestAnimationFrame(update);
     }
+
     function fmt(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`; }
     function seek(e) { const r = canvas.getBoundingClientRect(); audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration; update(); }
     function toggleZen() { const ov = document.getElementById('zen-overlay'); ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex'; }
     function addNote() { notes.push({ id: Date.now(), time: audio.currentTime, text: "" }); notes.sort((a,b) => a.time - b.time); renderNotes(); }
+    
     function renderNotes() {
         document.getElementById('notes-list').innerHTML = notes.map(n => `
             <div class="note-row"><div class="ts" onclick="audio.currentTime=${n.time}">${fmt(n.time)}</div>
             <input type="text" class="note-in" value="${n.text}" oninput="const x=notes.find(z=>z.id===${n.id});if(x)x.text=this.value">
             <button class="btn" onclick="notes=notes.filter(z=>z.id!==${n.id});renderNotes()" style="border:none;opacity:0.2">✕</button></div>`).join('');
     }
-    function drawWave() {
-        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-        ctx.fillStyle = '#222'; for(let i=0; i<canvas.width; i+=5) { const h = Math.random() * (canvas.height * 0.4); ctx.fillRect(i, (canvas.height - h)/2, 2, h); }
-    }
+
     function renameAndDownloadAudio() {
         const n = document.getElementById('m-title').value; const ext = currentAudioBlob.name.split('.').pop();
         const a = document.createElement('a'); a.href = URL.createObjectURL(currentAudioBlob); a.download = `${n}.${ext}`; a.click();
     }
+
     async function exportLog() {
         const t = document.getElementById('m-title').value;
         const body = `---\nTITLE: ${t}\nDEVICE: ${document.getElementById('m-device').value}\nMICS: ${document.getElementById('m-mics').value}\nLOCATION: ${document.getElementById('m-loc').value}\nTAGS: ${document.getElementById('m-tags').value}\n---\n\n# DESCRIPTION\n${document.getElementById('zen-editor').value}\n\n# ANNOTATIONS\n${notes.map(n => `- [${fmt(n.time)}] ${n.text}`).join('\n')}`;
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], {type:'text/markdown'})); a.download = `${t}.md`; a.click();
     }
+
+    window.onkeydown = (e) => {
+        if(e.key.toLowerCase() === 'n' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); addNote(); }
+        if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); togglePlay(); }
+    };
 </script>
 </body>
 </html>
