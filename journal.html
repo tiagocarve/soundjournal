@@ -7,6 +7,12 @@
         :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --wave: #268bd2; --pulse: #e8dfc4; }
         :root[data-theme="dark"] { --bg: #1a1a1a; --text: #a0a0a0; --ui: #2a2a2a; --accent: #0088cc; --wave: #444; --pulse: #333; }
         :root[data-theme="oled"] { --bg: #000000; --text: #888888; --ui: #111111; --accent: #ffffff; --wave: #333; --pulse: #222; }
+        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaa2; --accent: #8c6339; --wave: #8c6339; --pulse: #dfd09f; }
+        :root[data-theme="forest"] { --bg: #1a2421; --text: #a7b8a7; --ui: #2d3c35; --accent: #6b8e6b; --wave: #6b8e6b; --pulse: #25332e; }
+        /* New Modes */
+        :root[data-theme="slate"] { --bg: #e0e0e0; --text: #424242; --ui: #d0d0d0; --accent: #607d8b; --wave: #607d8b; --pulse: #cfd8dc; }
+        :root[data-theme="midnight"] { --bg: #0d1117; --text: #c9d1d9; --ui: #161b22; --accent: #58a6ff; --wave: #58a6ff; --pulse: #1f2937; }
+        :root[data-theme="dusk"] { --bg: #1e1e2e; --text: #cdd6f4; --ui: #313244; --accent: #cba6f7; --wave: #cba6f7; --pulse: #45475a; }
 
         * { transition: background-color 1s ease, color 1s ease; box-sizing: border-box; }
         body, html { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); height: 100%; width: 100%; font-family: 'Georgia', serif; overflow: hidden; display: flex; }
@@ -18,47 +24,43 @@
         #history-list { flex: 1; overflow-y: auto; padding: 10px; }
         .history-item { padding: 15px; border-bottom: 1px solid var(--ui); cursor: pointer; position: relative; display: flex; justify-content: space-between; align-items: flex-start; }
         .history-item:hover { background: var(--ui); }
-        .item-content { flex: 1; }
         .item-meta { font-family: monospace; font-size: 10px; opacity: 0.5; margin-bottom: 5px; }
+        .item-tags { font-size: 9px; color: var(--accent); margin-top: 5px; opacity: 0.8; }
         .delete-entry { opacity: 0; padding: 5px; color: #cc0000; font-size: 12px; transition: 0.2s; cursor: pointer; }
         .history-item:hover .delete-entry { opacity: 0.6; }
 
-        /* Layout */
-        #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; z-index: 100; background: var(--bg); }
-        .nav-group { display: flex; gap: 10px; align-items: center; }
+        /* Layout & Header */
+        #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; z-index: 100; background: var(--bg); transition: background-color 1s ease, color 1s ease; }
+        .nav-group { display: flex; gap: 8px; align-items: center; }
 
         /* Audio Deck */
-        #audio-deck { display: none; align-items: center; gap: 10px; background: var(--ui); padding: 4px 12px; border-radius: 2px; flex: 1; max-width: 450px; margin: 0 20px; position: relative; height: 32px; overflow: visible; }
+        #audio-deck { display: none; align-items: center; gap: 10px; background: var(--ui); padding: 4px 12px; border-radius: 2px; flex: 1; max-width: 450px; margin: 0 15px; position: relative; height: 32px; overflow: visible; }
         #wave-box { position: relative; flex: 1; height: 16px; background: rgba(0,0,0,0.03); cursor: pointer; overflow: hidden; }
         #wave-canvas { width: 100%; height: 100%; }
         #play-cursor { position: absolute; top: 0; left: 0; width: 1px; height: 100%; background: var(--accent); pointer-events: none; }
         
-        #vol-container { display: flex; align-items: center; width: 60px; margin-left: 5px; }
-        #vol-slider { -webkit-appearance: none; width: 100%; height: 2px; background: var(--text); outline: none; opacity: 0.3; cursor: pointer; }
-        #vol-slider:hover { opacity: 0.8; }
-        #vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+        #cur-time { font-size: 9px; font-family: monospace; min-width: 85px; opacity: 0.6; text-align: right; pointer-events: none; }
+        #file-hud { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); font-family: monospace; font-size: 9px; opacity: 0; transition: 0.3s; pointer-events: none; white-space: nowrap; letter-spacing: 1px; color: var(--accent); z-index: 10; }
+        #audio-deck:hover #file-hud { opacity: 0.7; bottom: 38px; }
 
-        #file-hud { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); font-family: monospace; font-size: 9px; opacity: 0; transition: 0.3s; pointer-events: none; white-space: nowrap; letter-spacing: 1px; color: var(--accent); }
-        #audio-deck:hover #file-hud { opacity: 0.7; bottom: 36px; }
+        #tag-in { background: transparent; border: none; border-bottom: 1px solid var(--ui); color: var(--accent); font-family: monospace; font-size: 11px; outline: none; padding: 5px; width: 100px; transition: 0.3s; }
+        #tag-in:focus { border-bottom-color: var(--accent); width: 140px; }
 
         /* UI Buttons */
-        .zen-circle { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.4; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text); outline: none; position: relative; overflow: hidden; }
+        .zen-circle { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.4; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text); outline: none; position: relative; overflow: hidden; flex-shrink: 0; }
         .zen-circle:hover { opacity: 1; border-color: var(--accent); background: var(--ui); }
         .audio-ctrl { background: none; border: none; color: var(--text); cursor: pointer; font-size: 12px; opacity: 0.5; padding: 0 4px; }
         .audio-ctrl:hover { opacity: 1; color: var(--accent); }
 
-        .file-label { cursor: pointer; position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 10; }
-        #au-in { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-
         /* Writing Space */
         #writing-area { width: 90%; max-width: 650px; margin: 0 auto; padding: 150px 20px 40vh 20px; outline: none; line-height: 1.8; min-height: 100vh; font-size: 19px; }
         #scroll-container { height: 100vh; width: 100%; overflow-y: auto; }
+        
         @keyframes alarmPulse { 0% { background-color: var(--bg); } 50% { background-color: var(--pulse); } 100% { background-color: var(--bg); } }
-        .timer-finished { animation: alarmPulse 1.5s ease-in-out infinite; transition: none !important; }
+        .timer-finished, .timer-finished #top-bar { animation: alarmPulse 1.5s ease-in-out infinite; transition: none !important; }
 
         #footer { position: fixed; bottom: 25px; left: 30px; right: 30px; display: flex; justify-content: space-between; pointer-events: none; font-family: monospace; font-size: 11px; opacity: 0.5; }
         #timer-display { color: var(--accent); font-weight: bold; }
-
         #settings-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--ui); padding: 35px; z-index: 3000; display: none; width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
     </style>
 </head>
@@ -66,13 +68,14 @@
 
     <div id="sidebar">
         <div class="sidebar-header">VAULT HISTORY <span style="float:right; cursor:pointer" onclick="toggleSidebar()">✕</span></div>
-        <input type="text" id="search-box" placeholder="Search..." oninput="filterHistory()" style="margin:15px; width:calc(100% - 30px); background:var(--ui); border:none; padding:10px; color:var(--text); outline:none;">
+        <input type="text" id="search-box" placeholder="Search text or #tags..." oninput="filterHistory()" style="margin:15px; width:calc(100% - 30px); background:var(--ui); border:none; padding:10px; color:var(--text); outline:none;">
         <div id="history-list"></div>
     </div>
 
     <header id="top-bar">
         <div class="nav-group">
             <button class="zen-circle" onclick="toggleSidebar()">☰</button>
+            <input type="text" id="tag-in" placeholder="#tags">
         </div>
 
         <div id="audio-deck">
@@ -83,14 +86,11 @@
                 <canvas id="wave-canvas"></canvas>
                 <div id="play-cursor"></div>
             </div>
-            <span id="cur-time" style="font-size:9px; font-family:monospace; min-width:30px; opacity:0.6">0:00</span>
-            <div id="vol-container">
-                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.7">
-            </div>
+            <span id="cur-time">0:00 / 0:00</span>
         </div>
 
         <div class="nav-group">
-            <button class="zen-circle"><label class="file-label">♫ <input type="file" id="au-in" accept="audio/*"></label></button>
+            <button class="zen-circle"><label style="cursor:pointer">♫ <input type="file" id="au-in" accept="audio/*" style="display:none"></label></button>
             <button class="zen-circle" id="time-btn" title="Stamp">🕒</button>
             <button class="zen-circle" onclick="toggleFullscreen()" title="Full Screen">⛶</button>
             <button class="zen-circle" onclick="copyText()" title="Copy to Clipboard">📋</button>
@@ -125,7 +125,6 @@
         const player = new Audio();
         let fullHistory = [];
 
-        // --- GITHUB SYNC ---
         const getC = () => ({ token: localStorage.getItem('v_token'), repo: localStorage.getItem('v_repo'), file: 'vault.json' });
 
         async function sync() {
@@ -137,12 +136,23 @@
                 const res = await fetch(url, { headers: { 'Authorization': `token ${c.token}` } });
                 if (res.ok) { const j = await res.json(); sha = j.sha; data = JSON.parse(decodeURIComponent(escape(atob(j.content)))); }
             } catch(e) {}
-            data.push({ id: Date.now(), date: new Date().toISOString(), text: editor.innerText.trim() });
+            
+            data.push({ 
+                id: Date.now(), 
+                date: new Date().toISOString(), 
+                text: editor.innerText.trim(),
+                tags: document.getElementById('tag-in').value.trim() 
+            });
+
             const put = await fetch(url, {
                 method: 'PUT', headers: { 'Authorization': `token ${c.token}` },
-                body: JSON.stringify({ message: "Sync", content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))), sha: sha })
+                body: JSON.stringify({ message: "Sync with tags", content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))), sha: sha })
             });
-            if(put.ok) { btn.innerText = "📔"; editor.innerText = ""; updateStats(); loadHistory(); }
+            if(put.ok) { 
+                btn.innerText = "📔"; editor.innerText = ""; 
+                document.getElementById('tag-in').value = "";
+                updateStats(); loadHistory(); 
+            }
         }
 
         async function loadHistory() {
@@ -161,32 +171,36 @@
             document.getElementById('history-list').innerHTML = items.slice().reverse().map(e => {
                 const d = new Date(e.date);
                 const time = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-                return `<div class="history-item" onclick="loadEntry('${btoa(unescape(encodeURIComponent(e.text)))}')">
-                    <div class="item-content"><div class="item-meta">${time}</div><div style="font-size:13px; opacity:0.8">${e.text.substring(0, 50)}...</div></div>
+                const tagsStr = e.tags ? `<div class="item-tags">${e.tags}</div>` : '';
+                return `<div class="history-item" onclick="loadEntry('${btoa(unescape(encodeURIComponent(e.text)))}', '${btoa(unescape(encodeURIComponent(e.tags || '')))}')">
+                    <div class="item-content">
+                        <div class="item-meta">${time}</div>
+                        <div style="font-size:13px; opacity:0.8">${e.text.substring(0, 50)}...</div>
+                        ${tagsStr}
+                    </div>
                     <div class="delete-entry" onclick="deleteEntry(${e.id}, event)">✕</div>
                 </div>`;
             }).join('');
         }
 
-        async function deleteEntry(id, event) {
-            event.stopPropagation();
-            if(!confirm("Permanently remove this entry?")) return;
-            const c = getC();
-            const url = `https://api.github.com/repos/${c.repo}/contents/${c.file}`;
-            const res = await fetch(url, { headers: { 'Authorization': `token ${c.token}` } });
-            const j = await res.json();
-            let data = JSON.parse(decodeURIComponent(escape(atob(j.content))));
-            data = data.filter(item => item.id !== id);
-            await fetch(url, {
-                method: 'PUT', headers: { 'Authorization': `token ${c.token}` },
-                body: JSON.stringify({ message: "Delete entry", content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))), sha: j.sha })
-            });
-            loadHistory();
+        function loadEntry(encText, encTags) { 
+            if(confirm("Load entry?")) { 
+                editor.innerText = decodeURIComponent(escape(atob(encText))); 
+                document.getElementById('tag-in').value = decodeURIComponent(escape(atob(encTags)));
+                toggleSidebar(); updateStats(); 
+            } 
         }
 
-        function loadEntry(enc) { if(confirm("Load entry?")) { editor.innerText = decodeURIComponent(escape(atob(enc))); toggleSidebar(); updateStats(); } }
+        function filterHistory() { 
+            const q = document.getElementById('search-box').value.toLowerCase(); 
+            renderHistory(fullHistory.filter(h => 
+                h.text.toLowerCase().includes(q) || (h.tags && h.tags.toLowerCase().includes(q))
+            )); 
+        }
 
         // --- AUDIO ENGINE ---
+        function formatTime(s) { if (isNaN(s)) return "0:00"; return Math.floor(s/60) + ":" + Math.floor(s%60).toString().padStart(2,'0'); }
+        
         document.getElementById('au-in').onchange = (e) => {
             const file = e.target.files[0]; if(!file) return;
             document.getElementById('file-hud').innerText = file.name.toUpperCase();
@@ -195,23 +209,20 @@
             drawWave(); player.play(); document.getElementById('pp-btn').innerText = "||";
         };
 
-        function drawWave() {
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--wave').trim();
-            for(let i=0; i<canvas.width; i+=4) {
-                const h = Math.random() * canvas.height;
-                ctx.fillRect(i, (canvas.height - h)/2, 2, h);
-            }
-        }
-
-        document.getElementById('vol-slider').oninput = (e) => { player.volume = e.target.value; };
-        function togglePlay() { player.paused ? player.play() : player.pause(); document.getElementById('pp-btn').innerText = player.paused ? "▶" : "||"; }
-        function stopAudio() { player.pause(); player.currentTime = 0; document.getElementById('pp-btn').innerText = "▶"; }
+        player.onloadedmetadata = () => { document.getElementById('cur-time').innerText = `0:00 / ${formatTime(player.duration)}`; };
         player.ontimeupdate = () => {
             document.getElementById('play-cursor').style.left = (player.currentTime / player.duration) * 100 + "%";
-            document.getElementById('cur-time').innerText = Math.floor(player.currentTime/60) + ":" + Math.floor(player.currentTime%60).toString().padStart(2,'0');
+            document.getElementById('cur-time').innerText = `${formatTime(player.currentTime)} / ${formatTime(player.duration)}`;
         };
+
+        function drawWave() {
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--wave').trim();
+            for(let i=0; i<canvas.width; i+=4) { const h = Math.random() * canvas.height; ctx.fillRect(i, (canvas.height - h)/2, 2, h); }
+        }
+
+        function togglePlay() { player.paused ? player.play() : player.pause(); document.getElementById('pp-btn').innerText = player.paused ? "▶" : "||"; }
+        function stopAudio() { player.pause(); player.currentTime = 0; document.getElementById('pp-btn').innerText = "▶"; }
         function seekAudio(e) { player.currentTime = (e.offsetX / e.currentTarget.clientWidth) * player.duration; }
 
         // --- TOOLS ---
@@ -233,6 +244,11 @@
             a.click();
         }
 
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
+            else { if (document.exitFullscreen) document.exitFullscreen(); }
+        }
+
         document.getElementById('time-btn').onclick = () => {
             const d = new Date();
             const stamp = `[${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}] `;
@@ -245,15 +261,9 @@
             }
         };
 
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
-            else { if (document.exitFullscreen) document.exitFullscreen(); }
-        }
-
         document.getElementById('timer-btn').onclick = () => {
             const m = prompt("Minutes:", "20"); if(!m) return;
-            let s = m * 60;
-            const display = document.getElementById('timer-display');
+            let s = m * 60; const display = document.getElementById('timer-display');
             const int = setInterval(() => {
                 if(s <= 0) { clearInterval(int); display.innerText = "DONE"; body.classList.add('timer-finished'); }
                 else { display.innerText = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; s--; }
@@ -261,26 +271,36 @@
         };
         body.onmousedown = () => body.classList.remove('timer-finished');
 
-        const fonts = ["'Georgia', serif", "'Courier New', monospace", "'Helvetica', sans-serif"];
-        let fIdx = 0;
-        document.getElementById('font-btn').onclick = () => { fIdx = (fIdx+1)%fonts.length; editor.style.fontFamily = fonts[fIdx]; };
+        const fonts = [
+            "'Georgia', serif", 
+            "'Courier New', monospace", 
+            "'Helvetica', sans-serif", 
+            "'Lora', serif", 
+            "'Playfair Display', serif", 
+            "'IBM Plex Mono', monospace",
+            "'Garamond', serif",
+            "'Verdana', sans-serif",
+            "'Trebuchet MS', sans-serif"
+        ];
+        let fIdx = 0; document.getElementById('font-btn').onclick = () => { fIdx = (fIdx+1)%fonts.length; editor.style.fontFamily = fonts[fIdx]; };
 
         const sizes = ["16px", "19px", "24px", "30px"];
-        let sIdx = 1;
-        document.getElementById('size-btn').onclick = () => { sIdx = (sIdx+1)%sizes.length; editor.style.fontSize = sizes[sIdx]; };
+        let sIdx = 1; document.getElementById('size-btn').onclick = () => { sIdx = (sIdx+1)%sizes.length; editor.style.fontSize = sizes[sIdx]; };
 
+        function cycleTheme() { 
+            const th = ["light", "dark", "oled", "sepia", "forest", "slate", "midnight", "dusk"]; 
+            const cur = document.documentElement.getAttribute('data-theme') || "dark"; 
+            document.documentElement.setAttribute('data-theme', th[(th.indexOf(cur)+1)%th.length]); drawWave(); 
+        }
+
+        function updateStats() { const t = editor.innerText.trim(); document.getElementById('stats').innerText = `${t ? t.split(/\s+/).length : 0} WORDS | ${editor.innerText.length} CHARS`; }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function openSettings() { document.getElementById('settings-modal').style.display = 'block'; }
-        function saveSettings() { localStorage.setItem('v_token', document.getElementById('set-token').value); localStorage.setItem('v_repo', document.getElementById('set-repo').value); document.getElementById('settings-modal').style.display = 'none'; loadHistory(); }
-        function cycleTheme() { const th = ["light", "dark", "oled"]; const cur = document.documentElement.getAttribute('data-theme') || "dark"; document.documentElement.setAttribute('data-theme', th[(th.indexOf(cur)+1)%th.length]); drawWave(); }
-        function updateStats() { const t = editor.innerText.trim(); document.getElementById('stats').innerText = `${t ? t.split(/\s+/).length : 0} WORDS | ${editor.innerText.length} CHARS`; }
-        function filterHistory() { const q = document.getElementById('search-box').value.toLowerCase(); renderHistory(fullHistory.filter(h => h.text.toLowerCase().includes(q))); }
-
+        function saveSettings() { localStorage.setItem('v_token', document.getElementById('set-token').value); localStorage.setItem('v_repo', localStorage.getItem('v_repo')); document.getElementById('settings-modal').style.display = 'none'; loadHistory(); }
+        
         document.getElementById('sync-btn').onclick = sync;
         editor.addEventListener('input', updateStats);
-        window.onload = () => { 
-            loadHistory(); updateStats();
-        };
+        window.onload = () => { loadHistory(); updateStats(); };
     </script>
 </body>
 </html>
