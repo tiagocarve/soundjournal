@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Soundjournal | Folder Scout</title>
+    <style>
+        :root { --bg: #000; --panel: #0d0d0d; --text-dim: #666; --text-mid: #999; --text-bright: #eceae4; --accent: #00ffcc; --border: #222; --warn: #ff4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            background: var(--bg); 
+            color: var(--text-bright); 
+            font-family: -apple-system, system-ui, sans-serif; 
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Centers the main column */
+            min-height: 100vh;
+        }
+
+        /* The Main Container: Limits width to prevent the "middle canyon" */
+        .app-container {
+            width: 100%;
+            max-width: 1000px; /* Constrains the width */
+            padding: 40px 60px; /* Generous side margins */
+        }
+
+        header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 10px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+        
+        /* Sticky Toolbar */
+        .toolbar-wrap {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            padding: 10px 0 20px 0;
+            z-index: 10;
+        }
+        .toolbar { display: flex; gap: 10px; align-items: center; background: #080808; padding: 12px; border-radius: 4px; border: 1px solid #111; }
+        
+        #search-input { background: #000; border: 1px solid #222; color: #fff; padding: 10px 15px; border-radius: 3px; flex: 1; font-family: monospace; font-size: 14px; outline: none; }
+        #search-input:focus { border-color: var(--accent); }
+
+        .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; font-weight: bold; padding: 10px 16px; border-radius: 3px; transition: 0.1s; text-transform: uppercase; }
+        .btn:hover { border-color: #666; background: #222; }
+        .btn-primary { background: var(--text-bright); color: #000; border: none; }
+
+        .status-strip { display: flex; gap: 20px; font-family: monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 25px; padding-left: 5px; }
+        .status-strip span b { color: var(--accent); }
+
+        .file-group { margin-bottom: 30px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+        .group-header { background: #111; padding: 10px 20px; font-family: monospace; font-size: 11px; color: var(--text-dim); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px; }
+
+        .file-list { padding: 10px 0; list-style: none; }
+        .file-item { 
+            font-family: monospace; 
+            font-size: 14px; 
+            color: var(--text-mid); 
+            padding: 10px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 1px solid #111;
+        }
+        .file-item:last-child { border-bottom: none; }
+        .file-item:hover { background: #111; color: #fff; }
+
+        .meta-col { display: flex; gap: 30px; font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+        .missing-log { border-left: 3px solid var(--warn); }
+        .missing-log span:first-child { color: var(--warn); }
+
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; padding: 60px; flex-direction: column; z-index: 100; align-items: center; }
+        .modal-content { width: 100%; max-width: 1000px; height: 100%; display: flex; flex-direction: column; }
+        textarea { flex: 1; background: #000; border: 1px solid var(--border); color: #ccc; font-family: monospace; padding: 30px; outline: none; resize: none; font-size: 14px; line-height: 1.6; margin-bottom: 20px; border-radius: 4px; }
+        
+        .rename-controls { background: #0d0d0d; padding: 20px; border: 1px solid #222; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; border-radius: 4px; }
+        .rename-controls input { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 3px; font-family: monospace; flex: 1; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>SC_SCOUT // V1.9 CENTERED</h1>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" onclick="selectFolder()">SCAN FOLDER</button>
+            <button class="btn" onclick="openRenameModal()">RENAME</button>
+            <button class="btn" onclick="prepareExport('md')">MD</button>
+            <button class="btn" onclick="prepareExport('txt')">TXT</button>
+        </div>
+    </header>
+
+    <div class="toolbar-wrap">
+        <div class="toolbar">
+            <input type="text" id="search-input" placeholder="Search archive..." oninput="render()">
+            <select id="sort-type" onchange="render()" style="background:#111; color:#ccc; border:1px solid #333; padding:9px; border-radius:3px; font-family:monospace; font-size:12px; cursor:pointer;">
+                <option value="name-asc">NAME A-Z</option>
+                <option value="name-desc">NAME Z-A</option>
+                <option value="date-new">DATE (NEWEST)</option>
+                <option value="size-desc">SIZE (LARGEST)</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="status-bar" class="status-strip"></div>
+    <div id="file-display"></div>
+</div>
+
+<div id="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+            <h2 id="modal-title" style="font-size: 11px; font-family: monospace; color: var(--accent);">PREVIEW</h2>
+            <div style="display:flex; gap: 8px;">
+                <button class="btn" onclick="copyOutput()">COPY TEXT</button>
+                <button class="btn" onclick="closeModal()">CLOSE</button>
+            </div>
+        </div>
+        
+        <div id="rename-options" style="display:none;" class="rename-controls">
+            <input type="text" id="rename-find" placeholder="Find...">
+            <input type="text" id="rename-replace" placeholder="Replace...">
+            <button class="btn btn-primary" onclick="applyRenamePreview()">PREVIEW</button>
+            <button class="btn" style="color:var(--warn); border-color:#441111;" onclick="executeRename()">APPLY</button>
+        </div>
+
+        <textarea id="modal-text" spellcheck="false"></textarea>
+    </div>
+</div>
+
+<script>
+    let inventory = [];
+    let dirHandle = null;
+
+    async function selectFolder() {
+        try {
+            dirHandle = await window.showDirectoryPicker();
+            await refreshInventory();
+        } catch (err) { console.warn("Picker cancelled."); }
+    }
+
+    async function refreshInventory() {
+        inventory = [];
+        for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file' && !entry.name.startsWith('.')) {
+                const file = await entry.getFile();
+                inventory.push({
+                    handle: entry,
+                    name: entry.name,
+                    ext: entry.name.includes('.') ? entry.name.split('.').pop().toLowerCase() : '',
+                    size: file.size,
+                    sizeStr: (file.size / (1024 * 1024)).toFixed(1) + " MB",
+                    date: file.lastModified,
+                    dateFull: new Date(file.lastModified).toISOString().replace('T', ' ').slice(0, 16),
+                    base: entry.name.split('.').slice(0, -1).join('.')
+                });
+            }
+        }
+        render();
+    }
+
+    function render() {
+        const display = document.getElementById('file-display');
+        const statusBar = document.getElementById('status-bar');
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const sortVal = document.getElementById('sort-type').value;
+        display.innerHTML = '';
+        if (!inventory.length) return;
+
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query));
+        statusBar.innerHTML = `<span>Matches: <b>${filtered.length}</b></span> <span>Dir: <b>${dirHandle.name}</b></span>`;
+
+        const groups = {};
+        filtered.forEach(f => { if (!groups[f.ext]) groups[f.ext] = []; groups[f.ext].push(f); });
+
+        Object.keys(groups).sort().forEach(ext => {
+            const wrap = document.createElement('div');
+            wrap.className = 'file-group';
+            wrap.innerHTML = `<div class="group-header">.${ext.toUpperCase()}</div>`;
+            const list = document.createElement('ul');
+            list.className = 'file-list';
+            
+            groups[ext].sort((a,b) => {
+                if (sortVal === 'name-asc') return a.name.localeCompare(b.name, undefined, {numeric: true});
+                if (sortVal === 'name-desc') return b.name.localeCompare(a.name, undefined, {numeric: true});
+                if (sortVal === 'date-new') return b.date - a.date;
+                if (sortVal === 'size-desc') return b.size - a.size;
+            }).forEach(f => {
+                const isAudio = ['wav', 'mp3'].includes(f.ext);
+                const hasLog = inventory.some(x => x.ext === 'md' && x.base === f.base);
+                const li = document.createElement('li');
+                li.className = `file-item ${isAudio && !hasLog ? 'missing-log' : ''}`;
+                li.innerHTML = `<span>${f.name}</span><div class="meta-col"><span>${f.sizeStr}</span><span>${f.dateFull}</span></div>`;
+                list.appendChild(li);
+            });
+            wrap.appendChild(list);
+            display.appendChild(wrap);
+        });
+    }
+
+    function openRenameModal() {
+        if (!dirHandle) return alert("Scan folder first.");
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
+        document.getElementById('modal-title').innerText = `BULK RENAME (${filtered.length} FILES)`;
+        document.getElementById('rename-options').style.display = 'flex';
+        document.getElementById('modal-text').value = filtered.map(f => f.name).join('\n');
+        document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function applyRenamePreview() {
+        const f = document.getElementById('rename-find').value;
+        const r = document.getElementById('rename-replace').value;
+        const filtered = inventory.filter(fi => fi.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
+        document.getElementById('modal-text').value = filtered.map(fi => `${fi.name}  ➔  ${fi.name.replace(f, r)}`).join('\n');
+    }
+
+    async function executeRename() {
+        const f = document.getElementById('rename-find').value;
+        const r = document.getElementById('rename-replace').value;
+        const filtered = inventory.filter(fi => fi.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
+        if (!confirm("Commit changes to disk?")) return;
+        for (let file of filtered) { if (file.name.includes(f)) await file.handle.move(file.name.replace(f, r)); }
+        closeModal(); await refreshInventory();
+    }
+
+    function prepareExport(type) {
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
+        document.getElementById('modal-title').innerText = `EXPORT ${type.toUpperCase()}`;
+        document.getElementById('rename-options').style.display = 'none';
+        document.getElementById('modal-text').value = filtered.map(f => type === 'md' ? `- ${f.name}` : f.name).sort().join('\n');
+        document.getElementById('modal-overlay').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function copyOutput() { document.getElementById('modal-text').select(); document.execCommand('copy'); }
+</script>
+</body>
+</html>
