@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Soundjournal | Scout V3.4</title>
+    <style>
+        :root { --bg: #000; --panel: #0d0d0d; --text-dim: #666; --text-mid: #999; --text-bright: #eceae4; --accent: #00ffcc; --border: #222; --warn: #ff4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { background: var(--bg); color: var(--text-bright); font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 180px; }
+        .app-container { width: 100%; max-width: 1100px; padding: 40px 60px; }
+
+        header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 10px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+        
+        .toolbar { display: flex; gap: 10px; align-items: center; background: #080808; padding: 12px; border-radius: 4px; border: 1px solid #111; margin-bottom: 20px; }
+        #search-input { background: #000; border: 1px solid #222; color: #fff; padding: 10px 15px; border-radius: 3px; flex: 1; font-family: monospace; outline: none; }
+
+        .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; padding: 10px 16px; border-radius: 3px; text-transform: uppercase; }
+        .btn:hover { border-color: #666; background: #222; }
+        .btn-primary { background: var(--accent); color: #000; border: none; font-weight: bold; }
+
+        .file-item { font-family: monospace; font-size: 13px; color: var(--text-mid); padding: 12px 20px; display: flex; align-items: center; border-bottom: 1px solid #111; gap: 15px; background: var(--panel); border-radius: 4px; margin-bottom: 4px; }
+        .tag-input { background: #000; border: 1px solid #222; color: var(--accent); font-size: 12px; padding: 6px 10px; width: 180px; outline: none; }
+
+        /* Generator Dock */
+        #collage-dock { position: fixed; bottom: 0; left: 0; width: 100%; background: #050505; border-top: 2px solid var(--accent); padding: 25px 40px; display: none; flex-wrap: wrap; gap: 25px; z-index: 1000; align-items: center; justify-content: center; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-size: 8px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        input[type=range], input[type=number] { background: #111; border: 1px solid #333; color: var(--accent); font-family: monospace; }
+        input[type=range] { width: 90px; accent-color: var(--accent); }
+        
+        #timer-display { font-family: monospace; font-size: 28px; color: var(--accent); min-width: 100px; }
+        .recording #timer-display { color: var(--warn); text-shadow: 0 0 10px var(--warn); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>SOUNDJOURNAL // SCOUT V3.4</h1>
+        <div style="display:flex; gap:10px;">
+            <button class="btn" onclick="selectFolder()">SCAN FOLDER</button>
+            <button class="btn btn-primary" onclick="toggleCollage()">GENERATOR</button>
+        </div>
+    </header>
+
+    <div class="toolbar">
+        <input type="text" id="search-input" placeholder="Search filenames or #tags..." oninput="render()">
+        <span id="file-count" style="font-family:monospace; font-size:10px; color:var(--text-dim);">0 FILES</span>
+    </div>
+
+    <div id="file-display"></div>
+</div>
+
+<div id="collage-dock">
+    <div id="timer-display">00:00</div>
+    
+    <div class="control-group">
+        <label>Limit (Sec)</label>
+        <input type="number" id="c-target" value="60" style="width:60px; padding:5px;">
+    </div>
+
+    <div class="control-group"><label>Mood</label><input type="range" id="c-mood" min="0.3" max="2.0" step="0.1" value="1.0"></div>
+    <div class="control-group"><label>Density</label><input type="range" id="c-density" min="1" max="15" step="1" value="5"></div>
+    <div class="control-group"><label>Chaos</label><input type="range" id="c-chaos" min="0" max="1" step="0.1" value="0.4"></div>
+    <div class="control-group"><label>Width</label><input type="range" id="c-width" min="0" max="1" step="0.1" value="0.8"></div>
+    <div class="control-group"><label>Ghost</label><input type="range" id="c-ghost" min="20" max="6000" step="100" value="20"></div>
+
+    <div style="display:flex; gap: 10px; border-left: 1px solid #222; padding-left: 20px;">
+        <button class="btn btn-primary" id="start-btn" onclick="startCollage()">PLAY & RECORD</button>
+        <button class="btn btn-danger" onclick="stopCollage()">STOP</button>
+        <button class="btn" id="export-btn" style="display:none; background: #fff; color:#000;" onclick="exportWav()">EXPORT WAV</button>
+    </div>
+</div>
+
+<script>
+    let inventory = [], dirHandle = null, fileTags = JSON.parse(localStorage.getItem('scout_tags') || '{}');
+    let audioCtx, collageActive = false, activeNodes = [], recordedChunks = [], mediaRecorder, dest, startTime, timerInterval;
+
+    async function selectFolder() {
+        try {
+            dirHandle = await window.showDirectoryPicker();
+            inventory = [];
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && !entry.name.startsWith('.')) {
+                    inventory.push({ handle: entry, name: entry.name, ext: entry.name.split('.').pop().toLowerCase(), tag: fileTags[entry.name] || "" });
+                }
+            }
+            render();
+        } catch(e) { console.warn("Picker cancelled"); }
+    }
+
+    function render() {
+        const display = document.getElementById('file-display');
+        const query = document.getElementById('search-input').value.toLowerCase();
+        display.innerHTML = '';
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query));
+        document.getElementById('file-count').innerText = `${filtered.length} MATCHES`;
+
+        filtered.forEach(f => {
+            const li = document.createElement('div');
+            li.className = 'file-item';
+            li.innerHTML = `<span style="flex:1">${f.name}</span><input type="text" class="tag-input" value="${f.tag}" placeholder="+tags" onchange="updateTag('${f.name}', this.value)">`;
+            display.appendChild(li);
+        });
+    }
+
+    function updateTag(name, val) {
+        fileTags[name] = val;
+        localStorage.setItem('scout_tags', JSON.stringify(fileTags));
+        const item = inventory.find(f => f.name === name);
+        if(item) item.tag = val;
+    }
+
+    function toggleCollage() {
+        const dock = document.getElementById('collage-dock');
+        dock.style.display = dock.style.display === 'none' ? 'flex' : 'none';
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+            dest = audioCtx.createMediaStreamDestination();
+        }
+    }
+
+    async function startCollage() {
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        stopCollage();
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const pool = inventory.filter(f => (f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query)) && ['wav','mp3','ogg','m4a'].includes(f.ext));
+        
+        if (pool.length === 0) return alert("Pool is empty. Check search/tags.");
+
+        collageActive = true;
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(dest.stream);
+        mediaRecorder.ondataavailable = (e) => recordedChunks.push(e.data);
+        mediaRecorder.start();
+
+        document.getElementById('collage-dock').classList.add('recording');
+        document.getElementById('export-btn').style.display = 'none';
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 100);
+
+        const density = parseInt(document.getElementById('c-density').value);
+        for(let i=0; i < density; i++) playRandomFromPool(pool);
+    }
+
+    function updateTimer() {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const target = parseInt(document.getElementById('c-target').value);
+        const m = Math.floor(elapsed / 60), s = Math.floor(elapsed % 60);
+        document.getElementById('timer-display').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        if (elapsed >= target) stopCollage();
+    }
+
+    async function playRandomFromPool(pool) {
+        if (!collageActive) return;
+        const item = pool[Math.floor(Math.random() * pool.length)];
+        try {
+            const file = await item.handle.getFile(), arrayBuffer = await file.arrayBuffer();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            
+            const source = audioCtx.createBufferSource(), gain = audioCtx.createGain(), panner = audioCtx.createStereoPanner(), filter = audioCtx.createBiquadFilter();
+            
+            source.buffer = audioBuffer;
+            source.playbackRate.value = parseFloat(document.getElementById('c-mood').value) + (Math.random() * 0.1);
+            gain.gain.value = Math.random() * 0.4;
+            panner.pan.value = (Math.random() * 2 - 1) * parseFloat(document.getElementById('c-width').value);
+            filter.type = "highpass"; filter.frequency.value = parseFloat(document.getElementById('c-ghost').value);
+
+            source.connect(filter).connect(panner).connect(gain);
+            gain.connect(audioCtx.destination); gain.connect(dest);
+
+            const chaos = parseFloat(document.getElementById('c-chaos').value);
+            source.start(0, chaos > 0.5 ? Math.random() * (audioBuffer.duration * 0.8) : 0);
+            activeNodes.push(source);
+            
+            source.onended = () => { 
+                if (collageActive) {
+                    const nextGap = (1 - chaos) * 1000 + (Math.random() * 1500);
+                    setTimeout(() => playRandomFromPool(pool), nextGap);
+                }
+            };
+        } catch(e) { if(collageActive) playRandomFromPool(pool); }
+    }
+
+    function stopCollage() {
+        collageActive = false; clearInterval(timerInterval);
+        activeNodes.forEach(n => { try { n.stop(); } catch(e){} });
+        activeNodes = [];
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            document.getElementById('export-btn').style.display = 'block';
+        }
+        document.getElementById('collage-dock').classList.remove('recording');
+    }
+
+    async function exportWav() {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const audioBuf = await audioCtx.decodeAudioData(await blob.arrayBuffer());
+        const wavData = audioBufferToWav(audioBuf);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([wavData], { type: 'audio/wav' }));
+        a.download = `Recycle_Mix_${new Date().getTime()}.wav`;
+        a.click();
+    }
+
+    function audioBufferToWav(buffer) {
+        let numOfChan = buffer.numberOfChannels, length = buffer.length * numOfChan * 2 + 44, bufferArray = new ArrayBuffer(length), view = new DataView(bufferArray), pos = 0;
+        const set16 = (d) => { view.setUint16(pos, d, true); pos += 2; }, set32 = (d) => { view.setUint32(pos, d, true); pos += 4; };
+        set32(0x46464952); set32(length - 8); set32(0x45564157); set32(0x20746d66); set32(16); set16(1); set16(numOfChan);
+        set32(buffer.sampleRate); set32(buffer.sampleRate * 2 * numOfChan); set16(numOfChan * 2); set16(16); set32(0x61746164); set32(length - pos - 4);
+        for(let i=0; i<buffer.length; i++) {
+            for(let ch=0; ch<numOfChan; ch++) {
+                let s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+                view.setInt16(pos, s < 0 ? s * 0x8000 : s * 0x7FFF, true); pos += 2;
+            }
+        }
+        return bufferArray;
+    }
+</script>
+</body>
+</html>
