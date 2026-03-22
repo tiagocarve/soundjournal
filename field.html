@@ -5,58 +5,64 @@
     <title>Soundjournal | Field Log</title>
     <style>
         :root { --bg: #000; --panel: #0d0d0d; --text-dim: #999; --text-bright: #eceae4; --accent: #fff; --border: #222; }
+        body.light-mode { --bg: #f5f5f0; --panel: #e2e2da; --text-dim: #666; --text-bright: #1a1a1a; --border: #ccc; --accent: #007aff; }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text-bright); font-family: -apple-system, system-ui, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { background: var(--bg); color: var(--text-bright); font-family: -apple-system, system-ui, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; transition: background 0.2s; }
 
-        header { padding: 18px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #050505; }
+        header { padding: 18px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.1); }
         #file-title { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase; }
         
         .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; font-weight: bold; padding: 8px 15px; border-radius: 4px; transition: 0.1s; outline: none; }
+        body.light-mode .btn { background: #ddd; color: #000; border-color: #bbb; }
         .btn:hover { background: #333; border-color: #666; }
-        .btn-primary { background: var(--text-bright); color: #000; border: none; }
+        .btn-primary { background: var(--text-bright); color: var(--bg); border: none; }
         .btn-wf { background: #1a1a1a; color: #00ffcc; border: 1px solid #004433; }
 
         main { display: flex; flex: 1; overflow: hidden; }
         
         #log-meta { width: 340px; padding: 30px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; background: var(--panel); overflow-y: auto; }
         label { font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; display: block; margin-bottom: 5px; letter-spacing: 1.2px; }
-        input { width: 100%; background: #000; border: 1px solid #222; color: #fff; padding: 10px; font-family: monospace; outline: none; font-size: 14px; border-radius: 4px; }
-        input:focus { border-color: #555; }
+        input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-bright); padding: 10px; font-family: monospace; outline: none; font-size: 14px; border-radius: 4px; }
+        input:focus { border-color: var(--accent); }
 
-        #zen-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; flex-direction: column; padding: 8vh 15vw; }
+        #zen-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: none; flex-direction: column; padding: 8vh 15vw; }
         #zen-editor { background: transparent; border: none; color: var(--text-bright); width: 100%; height: 100%; outline: none; font-size: 21px; line-height: 1.7; resize: none; font-family: 'Georgia', serif; }
 
-        #work-area { flex: 1; display: flex; flex-direction: column; padding: 25px 40px; background: #000; }
-        #player-box { background: #080808; height: 80px; position: relative; border: 1px solid #1a1a1a; cursor: crosshair; overflow: hidden; border-radius: 3px; }
+        #work-area { flex: 1; display: flex; flex-direction: column; padding: 25px 40px; background: transparent; }
+        #player-box { background: rgba(128,128,128,0.05); height: 80px; position: relative; border: 1px solid var(--border); cursor: crosshair; overflow: hidden; border-radius: 3px; }
         #wave-canvas { width: 100%; height: 100%; }
-        #play-head { position: absolute; top: 0; left: 0; width: 1px; height: 100%; background: var(--accent); pointer-events: none; box-shadow: 0 0 5px #fff; }
+        #play-head { position: absolute; top: 0; left: 0; width: 1px; height: 100%; background: var(--accent); pointer-events: none; box-shadow: 0 0 5px var(--accent); }
         
-        #transport { display: flex; align-items: center; gap: 12px; margin: 15px 0; border-bottom: 1px solid #1a1a1a; padding-bottom: 15px; }
+        #transport { display: flex; align-items: center; gap: 12px; margin: 15px 0; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
         #time-display { font-size: 15px; color: var(--text-bright); font-family: monospace; font-weight: bold; }
 
         #notes-list { flex: 1; overflow-y: auto; }
         .note-row { display: flex; gap: 15px; margin-bottom: 12px; align-items: center; }
-        .ts { color: var(--text-bright); font-size: 13px; cursor: pointer; min-width: 55px; font-family: monospace; background: #111; padding: 3px; text-align: center; border-radius: 2px; border: 1px solid #222; }
-        .ts:hover { background: #eee; color: #000; }
-        .note-in { flex: 1; background: transparent; border: none; border-bottom: 1px solid #111; color: #fff; font-family: inherit; padding: 5px 0; outline: none; font-size: 15px; }
+        .ts { color: var(--text-bright); font-size: 13px; cursor: pointer; min-width: 55px; font-family: monospace; background: rgba(128,128,128,0.1); padding: 3px; text-align: center; border-radius: 2px; border: 1px solid var(--border); }
+        .note-in { flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text-bright); font-family: inherit; padding: 5px 0; outline: none; font-size: 15px; }
     </style>
 </head>
 <body>
 
 <div id="zen-overlay">
-    <div style="display:flex; justify-content: flex-end; margin-bottom: 30px;"><button class="btn" onclick="toggleZen()">✕ CLOSE</button></div>
+    <div style="display:flex; justify-content: flex-end; gap: 10px; margin-bottom: 30px;">
+        <button class="btn" onclick="toggleTheme()">◐ THEME</button>
+        <button class="btn" onclick="toggleZen()">✕ CLOSE</button>
+    </div>
     <textarea id="zen-editor" spellcheck="false" placeholder="Describe the texture..."></textarea>
 </div>
 
 <header>
     <div id="file-title">SDJNAL // <span id="cur-file-ui">READY</span></div>
     <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="toggleTheme()">◐ THEME</button>
         <input type="file" id="load-audio" accept="audio/*" style="display:none" onchange="handleAudioLoad(this)">
         <input type="file" id="load-md" accept=".md,.txt" style="display:none" onchange="handleMdLoad(this)">
         <button class="btn" onclick="triggerFile('load-audio')">+ AUDIO</button>
         <button class="btn" onclick="triggerFile('load-md')">+ LOG</button>
-        <button class="btn btn-wf" id="wf-btn" onclick="copyWorkflowyLine()">COPY WORKFLOWY LINE</button>
-        <button class="btn" onclick="copyToClipboard()">COPY CLEAN TEXT</button>
+        <button class="btn btn-wf" id="wf-btn" onclick="copyWorkflowyLine()">WORKFLOWY</button>
+        <button class="btn" onclick="copyToClipboard()">CLEAN TEXT</button>
         <button class="btn btn-primary" onclick="exportLog()">SAVE MD</button>
     </div>
 </header>
@@ -64,10 +70,10 @@
 <main>
     <section id="log-meta">
         <div>
-            <label>Device</label>
+            <label>Device (Suffix)</label>
             <input type="text" id="m-device" placeholder="e.g. ZoomH5" oninput="updateAutoTitle()">
             <label>Auto-Title</label>
-            <input type="text" id="m-title" placeholder="YYYYMMDD_HHMM_MMSS">
+            <input type="text" id="m-title" placeholder="YYYYMMDD_HHMM_MMSS_DEV">
             <label>Microphones</label>
             <input type="text" id="m-mics">
             <label>Location</label>
@@ -75,8 +81,8 @@
             <label>Tags</label>
             <input type="text" id="m-tags" placeholder="#nature #drone">
         </div>
-        <button class="btn" onclick="toggleZen()" style="margin-top: 10px; border-color: #333;">✎ ZEN DESCRIPTION</button>
-        <button class="btn" onclick="renameAndDownloadAudio()" id="rename-btn" style="display:none; margin-top: 5px; color: #666;">SAVE RENAMED WAV</button>
+        <button class="btn" onclick="toggleZen()" style="margin-top: 10px;">✎ ZEN DESCRIPTION</button>
+        <button class="btn" onclick="renameAndDownloadAudio()" id="rename-btn" style="display:none; margin-top: 5px; color: var(--accent); border-color: var(--accent);">SAVE RENAMED WAV</button>
     </section>
 
     <section id="work-area">
@@ -94,25 +100,20 @@
 
 <script>
     let currentAudioBlob = null; let audio = new Audio(); let notes = [];
-    let audioContext, audioBuffer;
-    let fileStamp = "";
+    let audioContext, audioBuffer, fileStamp = "";
     const canvas = document.getElementById('wave-canvas'); const ctx = canvas.getContext('2d');
 
     function triggerFile(id) { document.getElementById(id).click(); }
+    function toggleTheme() { document.body.classList.toggle('light-mode'); }
 
     async function handleAudioLoad(input) {
         const file = input.files[0]; if (!file) return;
         currentAudioBlob = file;
-        const url = URL.createObjectURL(file);
-        audio.src = url;
-
-        // Immediately set the date stamp from metadata
+        audio.src = URL.createObjectURL(file);
         const d = new Date(file.lastModified);
         fileStamp = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
-        
         document.getElementById('cur-file-ui').innerText = file.name.toUpperCase();
         
-        // Process Waveform
         const arrayBuffer = await file.arrayBuffer();
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -127,28 +128,25 @@
 
     function updateAutoTitle() {
         if (!fileStamp) return;
-        const dev = document.getElementById('m-device').value.replace(/\s+/g, '');
+        const dev = document.getElementById('m-device').value.replace(/\s+/g, '').toUpperCase();
         const durRaw = Math.floor(audio.duration || 0);
         const durStamp = `${Math.floor(durRaw/60).toString().padStart(2,'0')}${(durRaw%60).toString().padStart(2,'0')}`;
-        const prefix = dev ? `${dev}_` : "";
-        document.getElementById('m-title').value = `${prefix}${fileStamp}_${durStamp}`;
+        const suffix = dev ? `_${dev}` : "";
+        document.getElementById('m-title').value = `${fileStamp}_${durStamp}${suffix}`;
     }
 
     function drawRealWave(buffer) {
         canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
         const data = buffer.getChannelData(0);
         const step = Math.ceil(data.length / canvas.width);
-        const amp = canvas.height / 2;
-        ctx.fillStyle = '#444';
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#666'; ctx.clearRect(0, 0, canvas.width, canvas.height);
         for(let i=0; i < canvas.width; i++) {
             let min = 1.0, max = -1.0;
             for (let j=0; j<step; j++) {
                 const datum = data[(i*step)+j];
-                if (datum < min) min = datum;
-                if (datum > max) max = datum;
+                if (datum < min) min = datum; if (datum > max) max = datum;
             }
-            ctx.fillRect(i, (1+min)*amp, 1, Math.max(1, (max-min)*amp));
+            ctx.fillRect(i, (1+min)*(canvas.height/2), 1, Math.max(1, (max-min)*(canvas.height/2)));
         }
     }
 
@@ -174,59 +172,52 @@
         reader.readAsText(file);
     }
 
+    function renameAndDownloadAudio() {
+        if (!currentAudioBlob) return;
+        const n = document.getElementById('m-title').value || "unnamed";
+        const ext = currentAudioBlob.name.split('.').pop();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(currentAudioBlob); a.download = `${n}.${ext}`; a.click();
+    }
+
     function copyWorkflowyLine() {
-        const title = document.getElementById('m-title').value;
-        const tags = document.getElementById('m-tags').value;
-        const dur = fmt(audio.duration || 0);
-        // Format: [DEVICE] YYYYMMDD_HHMM_MMSS (DURATION) | TAGS
-        const line = `${title} (${dur}) | ${tags}`;
+        const line = `${document.getElementById('m-title').value} (${fmt(audio.duration || 0)}) | ${document.getElementById('m-tags').value}`;
         navigator.clipboard.writeText(line).then(() => {
-            const btn = document.getElementById('wf-btn');
-            btn.innerText = "COPIED!";
-            setTimeout(() => btn.innerText = "COPY WORKFLOWY LINE", 1000);
+            const btn = document.getElementById('wf-btn'); btn.innerText = "COPIED!";
+            setTimeout(() => btn.innerText = "WORKFLOWY", 1000);
         });
     }
 
     function copyToClipboard() {
         const text = `TITLE: ${document.getElementById('m-title').value}\nDURATION: ${fmt(audio.duration)}\nLOCATION: ${document.getElementById('m-loc').value}\nDESCRIPTION: ${document.getElementById('zen-editor').value}\n\nNOTES:\n${notes.map(n => `${fmt(n.time)} - ${n.text}`).join('\n')}`;
-        navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard."));
+        navigator.clipboard.writeText(text).then(() => alert("Copied."));
     }
 
     function togglePlay() { 
-        if(audio.paused) { audio.play(); document.getElementById('p-btn').innerText = "PAUSE"; } 
-        else { audio.pause(); document.getElementById('p-btn').innerText = "PLAY"; } 
+        audio.paused ? audio.play() : audio.pause(); 
+        document.getElementById('p-btn').innerText = audio.paused ? "PLAY" : "PAUSE";
         update(); 
     }
-
     function jumpRelative(sec) { audio.currentTime = Math.max(0, audio.currentTime + sec); update(); }
     function stopAudio() { audio.pause(); audio.currentTime = 0; document.getElementById('p-btn').innerText = "PLAY"; update(); }
-    
     function update() {
         const cur = audio.currentTime; const dur = audio.duration || 0;
         document.getElementById('time-display').innerText = `${fmt(cur)} / ${fmt(dur)}`;
         document.getElementById('play-head').style.left = (cur / dur) * 100 + "%";
         if (!audio.paused) requestAnimationFrame(update);
     }
-
     function fmt(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`; }
     function seek(e) { const r = canvas.getBoundingClientRect(); audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration; update(); }
     function toggleZen() { const ov = document.getElementById('zen-overlay'); ov.style.display = (ov.style.display === 'flex') ? 'none' : 'flex'; }
     function addNote() { notes.push({ id: Date.now(), time: audio.currentTime, text: "" }); notes.sort((a,b) => a.time - b.time); renderNotes(); }
-    
     function renderNotes() {
         document.getElementById('notes-list').innerHTML = notes.map(n => `
             <div class="note-row"><div class="ts" onclick="audio.currentTime=${n.time}">${fmt(n.time)}</div>
-            <input type="text" class="note-in" value="${n.text}" oninput="const x=notes.find(z=>z.id===${n.id});if(x)x.text=this.value">
+            <input type="text" class="note-in" value="${n.text}" oninput="notes.find(z=>z.id===${n.id}).text=this.value">
             <button class="btn" onclick="notes=notes.filter(z=>z.id!==${n.id});renderNotes()" style="border:none;opacity:0.2">✕</button></div>`).join('');
     }
 
-    function renameAndDownloadAudio() {
-        const n = document.getElementById('m-title').value; const ext = currentAudioBlob.name.split('.').pop();
-        const a = document.createElement('a'); a.href = URL.createObjectURL(currentAudioBlob); a.download = `${n}.${ext}`; a.click();
-    }
-
     async function exportLog() {
-        const t = document.getElementById('m-title').value;
+        const t = document.getElementById('m-title').value || "unnamed";
         const body = `---\nTITLE: ${t}\nDEVICE: ${document.getElementById('m-device').value}\nMICS: ${document.getElementById('m-mics').value}\nLOCATION: ${document.getElementById('m-loc').value}\nTAGS: ${document.getElementById('m-tags').value}\n---\n\n# DESCRIPTION\n${document.getElementById('zen-editor').value}\n\n# ANNOTATIONS\n${notes.map(n => `- [${fmt(n.time)}] ${n.text}`).join('\n')}`;
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], {type:'text/markdown'})); a.download = `${t}.md`; a.click();
     }
