@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>LoopScout | V1.2</title>
+    <style>
+        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --wave: #268bd2; }
+        :root[data-theme="dark"] { --bg: #0d0d0d; --text: #777; --ui: #1a1a1a; --accent: #0088cc; --wave: #333; }
+
+        * { box-sizing: border-box; transition: background 0.2s ease, color 0.2s ease; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+
+        #deck { width: 480px; padding: 40px; background: var(--ui); border-radius: 4px; text-align: center; border: 1px solid rgba(255,255,255,0.03); position: relative; }
+        .stat { font-size: 9px; letter-spacing: 4px; margin-bottom: 25px; opacity: 0.4; }
+        
+        #wave-wrapper { width: 100%; height: 100px; margin: 25px 0; position: relative; background: rgba(0,0,0,0.3); cursor: crosshair; border-radius: 2px; }
+        #wave-canvas { width: 100%; height: 100%; display: block; }
+        #wave-clip { position: absolute; height: 100%; background: var(--accent); opacity: 0.15; top: 0; pointer-events: none; border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); mix-blend-mode: screen; }
+        
+        .ctrl-group { display: flex; justify-content: center; gap: 20px; margin-top: 35px; }
+        .circle-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; color: var(--text); display: flex; align-items: center; justify-content: center; opacity: 0.4; outline: none; font-size: 16px; }
+        .circle-btn:hover { opacity: 1; border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+        .circle-btn:active { transform: scale(0.95); }
+        .circle-btn:disabled { opacity: 0.05; cursor: default; }
+
+        .param-row { font-size: 10px; color: var(--text); opacity: 0.6; margin-bottom: 10px; letter-spacing: 1px; }
+        input[type="number"] { background: transparent; border: none; border-bottom: 1px solid var(--text); color: var(--accent); width: 40px; text-align: center; font-family: monospace; outline: none; margin: 0 5px; font-size: 11px; }
+        
+        #drop-zone { position: absolute; inset: 0; background: var(--accent); opacity: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; z-index: 10; transition: 0.2s; }
+        body.dragging #drop-zone { opacity: 0.8; }
+        #file-name { font-size: 8px; margin-top: 25px; opacity: 0.3; letter-spacing: 1px; text-transform: uppercase; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+        .shortcut-hint { position: absolute; bottom: 10px; right: 15px; font-size: 8px; opacity: 0.2; }
+    </style>
+</head>
+<body ondragover="event.preventDefault(); document.body.classList.add('dragging')" ondragleave="document.body.classList.remove('dragging')" ondrop="handleDrop(event)">
+
+    <div id="deck">
+        <div id="drop-zone">DROP AUDIO TO LOAD</div>
+        <div class="stat">LOOPSCOUT // ZERO-POINT ENGINE</div>
+        
+        <div id="wave-wrapper" onclick="manualSeek(event)">
+            <canvas id="wave-canvas"></canvas>
+            <div id="wave-clip"></div>
+        </div>
+
+        <div class="param-row">
+            WINDOW: <input type="number" id="loop-len" value="2.5" step="0.1" min="0.1" onchange="updateUI()"> SECONDS
+        </div>
+
+        <div class="ctrl-group">
+            <button class="circle-btn" onclick="document.getElementById('au-in').click()" title="[O] Open Source">♫</button>
+            <button class="circle-btn" id="shuffle-btn" onclick="randomize()" title="[R] Randomize" disabled>🎲</button>
+            <button class="circle-btn" id="play-btn" onclick="toggleLoop()" title="[Space] Play/Pause" disabled>⏵</button>
+            <button class="circle-btn" id="dl-btn" onclick="downloadSlice()" title="[S] Save Loop" disabled>⬇</button>
+        </div>
+
+        <div id="file-name">DROP FILE OR CLICK ♫</div>
+        <div class="shortcut-hint">R: RANDOM | SPACE: PLAY | S: SAVE</div>
+        <input type="file" id="au-in" hidden accept="audio/*">
+    </div>
+
+    <script>
+        let context, buffer, source, startTime = 0;
+        let isPlaying = false;
+        const loopLenInput = document.getElementById('loop-len');
+        const waveClip = document.getElementById('wave-clip');
+        const canvas = document.getElementById('wave-canvas');
+
+        // --- CORE ENGINE ---
+        async function loadAudio(file) {
+            document.getElementById('file-name').innerText = file.name;
+            context = new (window.AudioContext || window.webkitAudioContext)();
+            const arrayBuffer = await file.arrayBuffer();
+            buffer = await context.decodeAudioData(arrayBuffer);
+            
+            drawWaveform(buffer);
+            document.querySelectorAll('button').forEach(b => b.disabled = false);
+            randomize();
+        }
+
+        function findZeroCrossing(pos) {
+            const data = buffer.getChannelData(0);
+            const sampleRate = buffer.sampleRate;
+            let samplePos = Math.floor(pos * sampleRate);
+            
+            // Look ahead 1000 samples for a zero crossing to avoid pops
+            for (let i = samplePos; i < samplePos + 1000 && i < data.length - 1; i++) {
+                if ((data[i] >= 0 && data[i+1] < 0) || (data[i] <= 0 && data[i+1] > 0)) {
+                    return i / sampleRate;
+                }
+            }
+            return pos;
+        }
+
+        function drawWaveform(audioBuffer) {
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.offsetWidth * dpr;
+            canvas.height = canvas.offsetHeight * dpr;
+            ctx.scale(dpr, dpr);
+
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / canvas.offsetWidth);
+            const amp = canvas.offsetHeight / 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
+            
+            for (let i = 0; i < canvas.offsetWidth; i++) {
+                let min = 1.0, max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                ctx.globalAlpha = 0.4;
+                ctx.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+            }
+        }
+
+        function randomize() {
+            if (!buffer) return;
+            const len = parseFloat(loopLenInput.value);
+            const rawStart = Math.random() * (buffer.duration - len);
+            startTime = findZeroCrossing(rawStart);
+            updateUI();
+            if (isPlaying) restartLoop();
+        }
+
+        function manualSeek(e) {
+            if (!buffer) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const len = parseFloat(loopLenInput.value);
+            const rawStart = (x / rect.width) * buffer.duration;
+            
+            startTime = findZeroCrossing(Math.min(rawStart, buffer.duration - len));
+            updateUI();
+            if (isPlaying) restartLoop();
+        }
+
+        // --- PLAYBACK ---
+        function toggleLoop() {
+            isPlaying ? stop() : play();
+        }
+
+        function play() {
+            source = context.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+            source.loopStart = startTime;
+            source.loopEnd = startTime + parseFloat(loopLenInput.value);
+            source.connect(context.destination);
+            source.start(0, startTime);
+            
+            isPlaying = true;
+            document.getElementById('play-btn').innerText = "⏸";
+        }
+
+        function stop() {
+            if (source) source.stop();
+            isPlaying = false;
+            document.getElementById('play-btn').innerText = "⏵";
+        }
+
+        function restartLoop() { stop(); play(); }
+
+        function updateUI() {
+            if (!buffer) return;
+            const len = parseFloat(loopLenInput.value);
+            waveClip.style.left = (startTime / buffer.duration) * 100 + "%";
+            waveClip.style.width = (len / buffer.duration) * 100 + "%";
+        }
+
+        // --- UTILS ---
+        function handleDrop(e) {
+            e.preventDefault();
+            document.body.classList.remove('dragging');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('audio/')) loadAudio(file);
+        }
+
+        document.getElementById('au-in').onchange = (e) => {
+            if (e.target.files[0]) loadAudio(e.target.files[0]);
+        };
+
+        window.onkeydown = (e) => {
+            if (e.code === "Space") { e.preventDefault(); toggleLoop(); }
+            if (e.key.toLowerCase() === "r") randomize();
+            if (e.key.toLowerCase() === "s") downloadSlice();
+            if (e.key.toLowerCase() === "o") document.getElementById('au-in').click();
+        };
+
+        function downloadSlice() {
+            const len = parseFloat(loopLenInput.value);
+            const sampleRate = buffer.sampleRate;
+            const frameCount = Math.floor(len * sampleRate);
+            const sliceBuffer = context.createBuffer(buffer.numberOfChannels, frameCount, sampleRate);
+
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                sliceBuffer.getChannelData(i).set(buffer.getChannelData(i).slice(Math.floor(startTime * sampleRate), Math.floor(startTime * sampleRate) + frameCount));
+            }
+
+            const wavData = bufferToWav(sliceBuffer);
+            const blob = new Blob([wavData], { type: 'audio/wav' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `loop_${Math.floor(startTime)}s.wav`;
+            a.click();
+        }
+
+        function bufferToWav(abuffer) {
+            let n = abuffer.numberOfChannels, len = abuffer.length * n * 2 + 44,
+                buf = new ArrayBuffer(len), view = new DataView(buf), pos = 0;
+            const set16 = (d) => { view.setInt16(pos, d, true); pos += 2; };
+            const set32 = (d) => { view.setUint32(pos, d, true); pos += 4; };
+            set32(0x46464952); set32(len - 8); set32(0x45564157); set32(0x20746d66); set32(16);
+            set16(1); set16(n); set32(abuffer.sampleRate); set32(abuffer.sampleRate * 2 * n);
+            set16(n * 2); set16(16); set32(0x61746164); set32(len - pos - 4);
+            for(let i=0; i<abuffer.length; i++) {
+                for(let c=0; c<n; c++) {
+                    let s = Math.max(-1, Math.min(1, abuffer.getChannelData(c)[i]));
+                    set16(s < 0 ? s * 32768 : s * 32767);
+                }
+            }
+            return buf;
+        }
+    </script>
+</body>
+</html>
