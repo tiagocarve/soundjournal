@@ -2,107 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Soundjournal | Folder Scout</title>
+    <title>Soundjournal | Folder Scout V2.4</title>
     <style>
         :root { --bg: #000; --panel: #0d0d0d; --text-dim: #666; --text-mid: #999; --text-bright: #eceae4; --accent: #00ffcc; --border: #222; --warn: #ff4444; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        body { 
-            background: var(--bg); 
-            color: var(--text-bright); 
-            font-family: -apple-system, system-ui, sans-serif; 
-            display: flex;
-            flex-direction: column;
-            align-items: center; /* Centers the main column */
-            min-height: 100vh;
-        }
-
-        /* The Main Container: Limits width to prevent the "middle canyon" */
-        .app-container {
-            width: 100%;
-            max-width: 1000px; /* Constrains the width */
-            padding: 40px 60px; /* Generous side margins */
-        }
+        body { background: var(--bg); color: var(--text-bright); font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 100px; }
+        .app-container { width: 100%; max-width: 1100px; padding: 40px 60px; }
 
         header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         h1 { font-size: 10px; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
         
-        /* Sticky Toolbar */
-        .toolbar-wrap {
-            position: sticky;
-            top: 0;
-            background: var(--bg);
-            padding: 10px 0 20px 0;
-            z-index: 10;
-        }
+        .toolbar-wrap { position: sticky; top: 0; background: var(--bg); padding: 10px 0 10px 0; z-index: 10; }
         .toolbar { display: flex; gap: 10px; align-items: center; background: #080808; padding: 12px; border-radius: 4px; border: 1px solid #111; }
         
         #search-input { background: #000; border: 1px solid #222; color: #fff; padding: 10px 15px; border-radius: 3px; flex: 1; font-family: monospace; font-size: 14px; outline: none; }
-        #search-input:focus { border-color: var(--accent); }
+        #search-input::placeholder { color: #444; }
 
-        .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; font-weight: bold; padding: 10px 16px; border-radius: 3px; transition: 0.1s; text-transform: uppercase; }
+        .btn { background: #1a1a1a; border: 1px solid #333; color: #fff; cursor: pointer; font-family: monospace; font-size: 11px; font-weight: bold; padding: 10px 16px; border-radius: 3px; text-transform: uppercase; }
         .btn:hover { border-color: #666; background: #222; }
+        .btn-mini { padding: 4px 8px; font-size: 9px; height: 22px; }
         .btn-primary { background: var(--text-bright); color: #000; border: none; }
+        .btn-danger { color: var(--warn); border-color: #441111; }
 
-        .status-strip { display: flex; gap: 20px; font-family: monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 25px; padding-left: 5px; }
-        .status-strip span b { color: var(--accent); }
+        .status-strip { display: flex; gap: 20px; font-family: monospace; font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 20px; padding: 0 5px; }
+        .status-strip b { color: var(--accent); }
 
         .file-group { margin-bottom: 30px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-        .group-header { background: #111; padding: 10px 20px; font-family: monospace; font-size: 11px; color: var(--text-dim); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px; }
+        .group-header { background: #111; padding: 10px 20px; font-family: monospace; font-size: 11px; color: var(--text-dim); border-bottom: 1px solid var(--border); text-transform: uppercase; }
 
-        .file-list { padding: 10px 0; list-style: none; }
-        .file-item { 
-            font-family: monospace; 
-            font-size: 14px; 
-            color: var(--text-mid); 
-            padding: 10px 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            border-bottom: 1px solid #111;
-        }
-        .file-item:last-child { border-bottom: none; }
+        .file-list { list-style: none; }
+        .file-item { font-family: monospace; font-size: 13px; color: var(--text-mid); padding: 12px 20px; display: flex; align-items: center; border-bottom: 1px solid #111; gap: 15px; }
         .file-item:hover { background: #111; color: #fff; }
+        
+        .file-name { flex: 1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tag-input { background: #000; border: 1px solid #222; color: var(--accent); font-size: 12px; padding: 6px 10px; width: 180px; border-radius: 2px; outline: none; }
+        .tag-input:focus { border-color: var(--accent); }
 
-        .meta-col { display: flex; gap: 30px; font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-        .missing-log { border-left: 3px solid var(--warn); }
-        .missing-log span:first-child { color: var(--warn); }
+        .meta-col { display: flex; gap: 20px; font-size: 11px; color: var(--text-dim); min-width: 320px; justify-content: flex-end; align-items: center; }
+        .dur-cell { width: 50px; text-align: right; color: var(--text-mid); }
+
+        #player-dock { position: fixed; bottom: 0; width: 100%; background: #080808; border-top: 1px solid var(--border); padding: 15px 40px; display: none; justify-content: center; align-items: center; gap: 20px; z-index: 1000; }
+        audio { height: 30px; filter: invert(100%) hue-rotate(180deg) brightness(1.5); }
 
         #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; padding: 60px; flex-direction: column; z-index: 100; align-items: center; }
         .modal-content { width: 100%; max-width: 1000px; height: 100%; display: flex; flex-direction: column; }
-        textarea { flex: 1; background: #000; border: 1px solid var(--border); color: #ccc; font-family: monospace; padding: 30px; outline: none; resize: none; font-size: 14px; line-height: 1.6; margin-bottom: 20px; border-radius: 4px; }
-        
-        .rename-controls { background: #0d0d0d; padding: 20px; border: 1px solid #222; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; border-radius: 4px; }
-        .rename-controls input { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 3px; font-family: monospace; flex: 1; }
+        textarea { flex: 1; background: #000; border: 1px solid var(--border); color: #ccc; font-family: monospace; padding: 30px; outline: none; resize: none; font-size: 14px; line-height: 1.6; border-radius: 4px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <header>
-        <h1>SC_SCOUT // V1.9 CENTERED</h1>
+        <h1>SC_SCOUT // V2.4 SEARCH+</h1>
         <div style="display:flex; gap:8px;">
             <button class="btn btn-primary" onclick="selectFolder()">SCAN FOLDER</button>
             <button class="btn" onclick="openRenameModal()">RENAME</button>
             <button class="btn" onclick="prepareExport('md')">MD</button>
-            <button class="btn" onclick="prepareExport('txt')">TXT</button>
+            <button class="btn" onclick="prepareExport('workflowy')">WF</button>
         </div>
     </header>
 
     <div class="toolbar-wrap">
         <div class="toolbar">
-            <input type="text" id="search-input" placeholder="Search archive..." oninput="render()">
-            <select id="sort-type" onchange="render()" style="background:#111; color:#ccc; border:1px solid #333; padding:9px; border-radius:3px; font-family:monospace; font-size:12px; cursor:pointer;">
+            <input type="text" id="search-input" placeholder="Search filename or #tags..." oninput="render()">
+            <button class="btn btn-mini" style="color:var(--warn); border-color:#441111;" onclick="clearFilteredTags()">CLEAR TAGS</button>
+            <select id="sort-type" onchange="render()" style="background:#111; color:#ccc; border:1px solid #333; padding:9px; border-radius:3px; font-family:monospace; font-size:12px;">
                 <option value="name-asc">NAME A-Z</option>
-                <option value="name-desc">NAME Z-A</option>
                 <option value="date-new">DATE (NEWEST)</option>
-                <option value="size-desc">SIZE (LARGEST)</option>
             </select>
         </div>
     </div>
 
     <div id="status-bar" class="status-strip"></div>
     <div id="file-display"></div>
+</div>
+
+<div id="player-dock">
+    <span id="playing-now" style="font-family: monospace; font-size: 10px; color: var(--accent);"></span>
+    <audio id="global-player" controls autoplay></audio>
+    <button class="btn btn-mini" onclick="closePlayer()">✕</button>
 </div>
 
 <div id="modal-overlay">
@@ -114,14 +93,12 @@
                 <button class="btn" onclick="closeModal()">CLOSE</button>
             </div>
         </div>
-        
         <div id="rename-options" style="display:none;" class="rename-controls">
-            <input type="text" id="rename-find" placeholder="Find...">
-            <input type="text" id="rename-replace" placeholder="Replace...">
-            <button class="btn btn-primary" onclick="applyRenamePreview()">PREVIEW</button>
-            <button class="btn" style="color:var(--warn); border-color:#441111;" onclick="executeRename()">APPLY</button>
+            <input type="text" id="rename-find" placeholder="Find..." style="background:#000; border:1px solid #333; color:#fff; padding:10px; font-family:monospace;" oninput="applyRenamePreview()">
+            <input type="text" id="rename-replace" placeholder="Replace..." style="background:#000; border:1px solid #333; color:#fff; padding:10px; font-family:monospace;" oninput="applyRenamePreview()">
+            <button class="btn btn-mini" onclick="appendTagsToRename()">+ APPEND TAGS</button>
+            <button class="btn btn-danger" onclick="executeRename()">APPLY TO DISK</button>
         </div>
-
         <textarea id="modal-text" spellcheck="false"></textarea>
     </div>
 </div>
@@ -129,6 +106,7 @@
 <script>
     let inventory = [];
     let dirHandle = null;
+    let fileTags = JSON.parse(localStorage.getItem('scout_tags') || '{}');
 
     async function selectFolder() {
         try {
@@ -150,23 +128,76 @@
                     sizeStr: (file.size / (1024 * 1024)).toFixed(1) + " MB",
                     date: file.lastModified,
                     dateFull: new Date(file.lastModified).toISOString().replace('T', ' ').slice(0, 16),
-                    base: entry.name.split('.').slice(0, -1).join('.')
+                    tag: fileTags[entry.name] || "",
+                    duration: "--:--",
+                    rawDuration: 0
                 });
             }
         }
         render();
+        loadDurations();
+    }
+
+    async function loadDurations() {
+        for (let item of inventory) {
+            if (['wav', 'mp3', 'm4a', 'ogg'].includes(item.ext) && item.duration === "--:--") {
+                try {
+                    const file = await item.handle.getFile();
+                    const url = URL.createObjectURL(file);
+                    const tempAudio = new Audio();
+                    tempAudio.src = url;
+                    await new Promise((resolve) => {
+                        tempAudio.onloadedmetadata = () => {
+                            item.rawDuration = tempAudio.duration;
+                            const m = Math.floor(tempAudio.duration / 60);
+                            const s = Math.floor(tempAudio.duration % 60);
+                            item.duration = `${m}:${s.toString().padStart(2, '0')}`;
+                            URL.revokeObjectURL(url);
+                            const el = document.getElementById(`dur-${inventory.indexOf(item)}`);
+                            if(el) el.innerText = item.duration;
+                            updateStatus();
+                            resolve();
+                        };
+                        tempAudio.onerror = () => resolve();
+                    });
+                } catch (e) {}
+            }
+        }
+    }
+
+    function updateStatus() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = inventory.filter(f => 
+            f.name.toLowerCase().includes(query) || 
+            f.tag.toLowerCase().includes(query)
+        );
+        const totalSec = filtered.reduce((acc, curr) => acc + (curr.rawDuration || 0), 0);
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = Math.floor(totalSec % 60);
+        const timeStr = h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+        
+        document.getElementById('status-bar').innerHTML = `
+            <span>Matches: <b>${filtered.length}</b></span>
+            <span>Selection Time: <b>${timeStr}</b></span>
+            <span>Dir: <b>${dirHandle ? dirHandle.name : 'None'}</b></span>
+        `;
     }
 
     function render() {
         const display = document.getElementById('file-display');
-        const statusBar = document.getElementById('status-bar');
         const query = document.getElementById('search-input').value.toLowerCase();
         const sortVal = document.getElementById('sort-type').value;
         display.innerHTML = '';
         if (!inventory.length) return;
 
-        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query));
-        statusBar.innerHTML = `<span>Matches: <b>${filtered.length}</b></span> <span>Dir: <b>${dirHandle.name}</b></span>`;
+        // Search logic includes both filename and tags
+        const filtered = inventory.filter(f => 
+            f.name.toLowerCase().includes(query) || 
+            f.tag.toLowerCase().includes(query)
+        );
+        
+        updateStatus();
 
         const groups = {};
         filtered.forEach(f => { if (!groups[f.ext]) groups[f.ext] = []; groups[f.ext].push(f); });
@@ -180,15 +211,21 @@
             
             groups[ext].sort((a,b) => {
                 if (sortVal === 'name-asc') return a.name.localeCompare(b.name, undefined, {numeric: true});
-                if (sortVal === 'name-desc') return b.name.localeCompare(a.name, undefined, {numeric: true});
                 if (sortVal === 'date-new') return b.date - a.date;
-                if (sortVal === 'size-desc') return b.size - a.size;
             }).forEach(f => {
-                const isAudio = ['wav', 'mp3'].includes(f.ext);
-                const hasLog = inventory.some(x => x.ext === 'md' && x.base === f.base);
+                const idx = inventory.indexOf(f);
                 const li = document.createElement('li');
-                li.className = `file-item ${isAudio && !hasLog ? 'missing-log' : ''}`;
-                li.innerHTML = `<span>${f.name}</span><div class="meta-col"><span>${f.sizeStr}</span><span>${f.dateFull}</span></div>`;
+                li.className = `file-item`;
+                li.innerHTML = `
+                    <button class="btn btn-mini" onclick="playFile('${f.name}')">▶</button>
+                    <span class="file-name" onclick="playFile('${f.name}')">${f.name}</span>
+                    <input type="text" class="tag-input" placeholder="+TAGS" value="${f.tag}" onchange="updateTag('${f.name}', this.value)">
+                    <div class="meta-col">
+                        <span class="dur-cell" id="dur-${idx}">${f.duration}</span>
+                        <span>${f.sizeStr}</span>
+                        <span>${f.dateFull}</span>
+                        <button class="btn btn-mini btn-danger" onclick="softDelete('${f.name}')">TRASH</button>
+                    </div>`;
                 list.appendChild(li);
             });
             wrap.appendChild(list);
@@ -196,9 +233,60 @@
         });
     }
 
+    function clearFilteredTags() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = inventory.filter(f => 
+            f.name.toLowerCase().includes(query) || 
+            f.tag.toLowerCase().includes(query)
+        );
+        if (!confirm(`Clear tags for ${filtered.length} filtered files?`)) return;
+        filtered.forEach(f => {
+            f.tag = "";
+            delete fileTags[f.name];
+        });
+        localStorage.setItem('scout_tags', JSON.stringify(fileTags));
+        render();
+    }
+
+    async function playFile(name) {
+        const item = inventory.find(f => f.name === name);
+        if (!item) return;
+        const file = await item.handle.getFile();
+        const url = URL.createObjectURL(file);
+        const player = document.getElementById('global-player');
+        document.getElementById('playing-now').innerText = name.toUpperCase();
+        player.src = url;
+        document.getElementById('player-dock').style.display = 'flex';
+        player.play();
+    }
+
+    function closePlayer() { 
+        document.getElementById('global-player').pause(); 
+        document.getElementById('player-dock').style.display = 'none'; 
+    }
+
+    function updateTag(name, val) {
+        fileTags[name] = val;
+        localStorage.setItem('scout_tags', JSON.stringify(fileTags));
+        const item = inventory.find(f => f.name === name);
+        if(item) item.tag = val;
+        updateStatus();
+    }
+
+    async function softDelete(name) {
+        if (!confirm(`Move ${name} to .trash?`)) return;
+        try {
+            const trashHandle = await dirHandle.getDirectoryHandle('.trash', { create: true });
+            const fileItem = inventory.find(f => f.name === name);
+            await fileItem.handle.move(trashHandle);
+            await refreshInventory();
+        } catch (e) { alert("Permission error. Refresh folder access."); }
+    }
+
     function openRenameModal() {
         if (!dirHandle) return alert("Scan folder first.");
-        const filtered = inventory.filter(f => f.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query));
         document.getElementById('modal-title').innerText = `BULK RENAME (${filtered.length} FILES)`;
         document.getElementById('rename-options').style.display = 'flex';
         document.getElementById('modal-text').value = filtered.map(f => f.name).join('\n');
@@ -206,26 +294,52 @@
     }
 
     function applyRenamePreview() {
-        const f = document.getElementById('rename-find').value;
-        const r = document.getElementById('rename-replace').value;
-        const filtered = inventory.filter(fi => fi.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
-        document.getElementById('modal-text').value = filtered.map(fi => `${fi.name}  ➔  ${fi.name.replace(f, r)}`).join('\n');
+        const findText = document.getElementById('rename-find').value;
+        const replaceText = document.getElementById('rename-replace').value;
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query));
+        document.getElementById('modal-text').value = filtered.map(f => {
+            let newName = f.name.replace(findText, replaceText);
+            return `${f.name}  ➔  ${newName}`;
+        }).join('\n');
+    }
+
+    function appendTagsToRename() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query));
+        document.getElementById('modal-text').value = filtered.map(f => {
+            const parts = f.name.split('.');
+            const ext = parts.pop();
+            const base = parts.join('.');
+            const tagStr = f.tag ? `_${f.tag.replace(/\s+/g, '_')}` : "";
+            return `${f.name}  ➔  ${base}${tagStr}.${ext}`;
+        }).join('\n');
     }
 
     async function executeRename() {
-        const f = document.getElementById('rename-find').value;
-        const r = document.getElementById('rename-replace').value;
-        const filtered = inventory.filter(fi => fi.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
-        if (!confirm("Commit changes to disk?")) return;
-        for (let file of filtered) { if (file.name.includes(f)) await file.handle.move(file.name.replace(f, r)); }
+        if (!confirm("Confirm rename on disk?")) return;
+        const lines = document.getElementById('modal-text').value.split('\n');
+        for (let line of lines) {
+            if (!line.includes('➔')) continue;
+            const parts = line.split('➔').map(p => p.trim());
+            const oldName = parts[0], newName = parts[1];
+            const item = inventory.find(f => f.name === oldName);
+            if (item && oldName !== newName) {
+                try { await item.handle.move(newName); } catch(e) {}
+            }
+        }
         closeModal(); await refreshInventory();
     }
 
     function prepareExport(type) {
-        const filtered = inventory.filter(f => f.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase()));
-        document.getElementById('modal-title').innerText = `EXPORT ${type.toUpperCase()}`;
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = inventory.filter(f => f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query));
         document.getElementById('rename-options').style.display = 'none';
-        document.getElementById('modal-text').value = filtered.map(f => type === 'md' ? `- ${f.name}` : f.name).sort().join('\n');
+        document.getElementById('modal-title').innerText = `EXPORT ${type.toUpperCase()}`;
+        document.getElementById('modal-text').value = filtered.map(f => {
+            let tags = f.tag ? ` #${f.tag.replace(/\s+/g, ' #')}` : "";
+            return `- ${f.name}${tags}`;
+        }).sort().join('\n');
         document.getElementById('modal-overlay').style.display = 'flex';
     }
 
