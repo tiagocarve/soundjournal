@@ -2,98 +2,109 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>Soundjournal | Scout V5.0</title>
+    <title>Soundjournal | Scout V5.4</title>
     <style>
         :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --wave: #268bd2; --pulse: #e8dfc4; }
         :root[data-theme="dark"] { --bg: #1a1a1a; --text: #a0a0a0; --ui: #2a2a2a; --accent: #0088cc; --wave: #444; --pulse: #333; }
         :root[data-theme="oled"] { --bg: #000000; --text: #888888; --ui: #111111; --accent: #ffffff; --wave: #333; --pulse: #222; }
         :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaa2; --accent: #8c6339; --wave: #8c6339; --pulse: #dfd09f; }
 
-        * { transition: background-color 0.5s ease, color 0.5s ease; box-sizing: border-box; }
+        @keyframes globalPulse { 0%, 100% { background-color: var(--bg); } 50% { background-color: var(--pulse); } }
+        html.timer-finished, html.timer-finished body, html.timer-finished #top-bar { animation: globalPulse 1.5s infinite !important; }
+
+        * { transition: background-color 0.4s ease, color 0.4s ease; box-sizing: border-box; }
         body, html { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); height: 100%; width: 100%; font-family: 'Georgia', serif; overflow: hidden; }
 
-        /* Sidebar & Enhanced Search */
-        #sidebar { width: 320px; height: 100vh; background: var(--bg); border-right: 1px solid var(--ui); transform: translateX(-320px); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: fixed; z-index: 2000; display: flex; flex-direction: column; }
+        /* Sidebar & Tags */
+        #sidebar { width: 320px; height: 100vh; background: var(--bg); border-right: 1px solid var(--ui); transform: translateX(-320px); transition: 0.3s; position: fixed; z-index: 2000; display: flex; flex-direction: column; }
         #sidebar.open { transform: translateX(0); }
         .sidebar-header { padding: 25px; border-bottom: 1px solid var(--ui); font-size: 11px; letter-spacing: 2px; }
-        #search-box { width: calc(100% - 40px); margin: 15px 20px; padding: 10px; background: var(--ui); border: none; color: var(--text); font-size: 11px; outline: none; border-radius: 2px; }
+        #search-box { width: calc(100% - 40px); margin: 15px 20px; padding: 10px; background: var(--ui); border: none; color: var(--text); font-size: 11px; outline: none; }
         #history-list { flex: 1; overflow-y: auto; padding: 10px; }
         .history-item { padding: 15px; border-bottom: 1px solid var(--ui); cursor: pointer; position: relative; }
-        .history-item:hover { background: var(--ui); }
-        .item-tags { font-family: monospace; font-size: 9px; color: var(--accent); margin-top: 5px; }
-        .del-btn { position: absolute; top: 15px; right: 10px; opacity: 0; font-size: 14px; transition: 0.2s; padding: 5px; }
-        .history-item:hover .del-btn { opacity: 0.5; }
-        .del-btn:hover { opacity: 1 !important; color: #ff4444; }
+        .item-preview { font-size: 13px; opacity: 0.8; line-height: 1.4; }
+        .item-tags { font-family: monospace; font-size: 9px; color: var(--accent); margin-top: 6px; opacity: 0.6; }
+        .del-btn { position: absolute; top: 15px; right: 10px; opacity: 0; font-size: 14px; transition: 0.2s; cursor: pointer; }
+        .history-item:hover .del-btn { opacity: 0.6; }
 
         /* Top Bar */
         #top-bar { position: fixed; top: 0; left: 0; right: 0; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; z-index: 100; background: var(--bg); }
         .nav-group { display: flex; gap: 8px; align-items: center; }
 
-        /* Audio Deck */
-        #audio-deck { display: none; align-items: center; gap: 10px; background: var(--ui); padding: 4px 12px; border-radius: 20px; flex: 1; max-width: 420px; margin: 0 15px; position: relative; }
-        #file-hud { position: absolute; bottom: 35px; left: 20px; font-family: monospace; font-size: 9px; opacity: 0; color: var(--accent); white-space: nowrap; }
-        #audio-deck:hover #file-hud { opacity: 1; }
-        #wave-box { position: relative; flex: 1; height: 14px; background: rgba(0,0,0,0.05); cursor: pointer; overflow: hidden; }
+        /* Custom Audio Deck */
+        #audio-deck { display: none; align-items: center; gap: 15px; background: var(--ui); padding: 0 18px; border-radius: 4px; flex: 1; max-width: 520px; margin: 0 20px; height: 38px; }
+        .svg-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.5; transition: 0.2s; stroke: var(--text); fill: none; }
+        .svg-btn:hover { opacity: 1; stroke: var(--accent); }
+        #wave-box { position: relative; flex: 1; height: 14px; background: rgba(0,0,0,0.03); cursor: pointer; overflow: hidden; }
         #wave-canvas { width: 100%; height: 100%; }
         #play-cursor { position: absolute; top: 0; left: 0; width: 1px; height: 100%; background: var(--accent); }
-        .audio-btn { background: none; border: none; color: var(--text); cursor: pointer; font-size: 12px; }
+        
+        /* Volume Rail */
+        .vol-container { display: flex; align-items: center; gap: 8px; opacity: 0.4; transition: 0.3s; }
+        .vol-container:hover { opacity: 1; }
+        #vol-slider { width: 45px; -webkit-appearance: none; background: transparent; cursor: pointer; }
+        #vol-slider::-webkit-slider-runnable-track { width: 100%; height: 1px; background: var(--text); }
+        #vol-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 8px; width: 8px; border-radius: 50%; background: var(--accent); margin-top: -3.5px; border: none; }
 
-        /* Icons */
-        .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.4; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text); outline: none; }
+        /* Main UI Circles */
+        .zen-circle { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--text); background: transparent; cursor: pointer; opacity: 0.3; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text); outline: none; }
         .zen-circle:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
-        #tag-in { background: transparent; border: none; border-bottom: 1px solid var(--ui); color: var(--accent); font-family: monospace; font-size: 11px; outline: none; width: 80px; transition: 0.3s; }
-        #tag-in:focus { width: 120px; border-bottom-color: var(--accent); }
+        #tag-in { background: transparent; border: none; border-bottom: 1px solid var(--ui); color: var(--accent); font-family: monospace; font-size: 11px; outline: none; width: 70px; transition: 0.3s; }
+        #tag-in:focus { width: 110px; }
 
-        /* Writing Space */
+        /* Editor */
         #writing-area { width: 90%; max-width: 680px; margin: 0 auto; padding: 150px 20px 40vh 20px; outline: none; line-height: 1.8; font-size: 19px; min-height: 100vh; }
         #scroll-container { height: 100vh; width: 100%; overflow-y: auto; }
-        
-        @keyframes alarmPulse { 0%, 100% { background-color: var(--bg); } 50% { background-color: var(--pulse); } }
-        .timer-finished { animation: alarmPulse 1s infinite; }
-
-        #footer { position: fixed; bottom: 20px; left: 30px; right: 30px; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.4; pointer-events: none; }
-        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-box { background: var(--ui); padding: 30px; width: 320px; }
+        #footer { position: fixed; bottom: 25px; left: 30px; right: 30px; display: flex; justify-content: flex-end; font-family: monospace; font-size: 9px; opacity: 0.3; pointer-events: none; gap: 15px; letter-spacing: 1px; }
+        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-box { background: var(--ui); padding: 35px; width: 340px; }
     </style>
 </head>
-<body id="main-body">
+<body id="main-body" onmousedown="stopAlarm()">
 
     <div id="sidebar">
         <div class="sidebar-header">HISTORY <span style="float:right; cursor:pointer" onclick="toggleSidebar()">✕</span></div>
-        <input type="text" id="search-box" placeholder="Search text or #tags..." oninput="filterHistory()">
+        <input type="text" id="search-box" placeholder="Search entries or #tags..." oninput="filterHistory()">
         <div id="history-list"></div>
     </div>
 
     <header id="top-bar">
         <div class="nav-group">
-            <button class="zen-circle" onclick="toggleSidebar()">☰</button>
-            <input type="text" id="tag-in" placeholder="#tags">
+            <button class="zen-circle" onclick="toggleSidebar()" title="History">☰</button>
+            <input type="text" id="tag-in" placeholder="#tags" title="Current Tags">
         </div>
 
         <div id="audio-deck">
-            <div id="file-hud">...</div>
-            <button onclick="togglePlay()" id="pp-btn" class="audio-btn">⏵</button>
-            <button onclick="stopAudio()" class="audio-btn">⏹</button>
+            <button onclick="togglePlay()" id="pp-btn" class="svg-btn" title="Play/Pause">
+                <svg id="pp-svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon id="pp-path" points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+            <button onclick="stopAudio()" class="svg-btn" title="Stop">
+                <svg width="14" height="14" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+            </button>
             <div id="wave-box" onclick="seekAudio(event)">
                 <canvas id="wave-canvas"></canvas>
                 <div id="play-cursor"></div>
             </div>
-            <span id="cur-time" style="font-size:9px; font-family:monospace; min-width:65px; text-align:right;">0:00 / 0:00</span>
+            <div class="vol-container">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"></path></svg>
+                <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.8" oninput="player.volume = this.value">
+            </div>
+            <span id="cur-time" style="font-size:9px; font-family:monospace; min-width:70px; text-align:right; opacity:0.6;">0:00/0:00</span>
         </div>
 
         <div class="nav-group">
-            <button class="zen-circle" onclick="document.getElementById('au-in').click()">♫</button>
+            <button class="zen-circle" onclick="document.getElementById('au-in').click()" title="Load Audio">♫</button>
             <input type="file" id="au-in" hidden accept="audio/*">
-            <button class="zen-circle" onclick="insertStamp()">⌚</button>
-            <button class="zen-circle" onclick="toggleFullscreen()">⛶</button>
-            <button class="zen-circle" onclick="copyText()">⎘</button>
-            <button class="zen-circle" onclick="downloadText()">⬇</button>
-            <button class="zen-circle" onclick="cycleFont()">f</button>
-            <button class="zen-circle" onclick="cycleSize()">S</button>
-            <button class="zen-circle" onclick="startTimer()">⏱</button>
-            <button class="zen-circle" onclick="sync()" id="sync-btn">◈</button>
-            <button class="zen-circle" onclick="cycleTheme()">◑</button>
-            <button class="zen-circle" onclick="openSettings()">⚙</button>
+            <button class="zen-circle" onclick="insertStamp()" title="Timestamp">⌚</button>
+            <button class="zen-circle" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+            <button class="zen-circle" id="copy-btn" onclick="copyText()" title="Copy Text">⎘</button>
+            <button class="zen-circle" onclick="downloadText()" title="Download">⬇</button>
+            <button class="zen-circle" onclick="cycleFont()" title="Font Type">f</button>
+            <button class="zen-circle" onclick="cycleSize()" title="Font Size">S</button>
+            <button class="zen-circle" onclick="startTimer()" title="Timer">⏱</button>
+            <button class="zen-circle" onclick="sync()" id="sync-btn" title="Sync">◈</button>
+            <button class="zen-circle" onclick="cycleTheme()" title="Theme">◑</button>
+            <button class="zen-circle" onclick="openSettings()" title="Settings">⚙</button>
         </div>
     </header>
 
@@ -101,62 +112,52 @@
         <div id="writing-area" contenteditable="true" spellcheck="false" autofocus></div>
     </div>
 
-    <div id="footer"><div id="timer-display">SESSION IDLE</div><div id="stats">0 WORDS</div></div>
+    <div id="footer">
+        <div id="char-stats">0 CHARACTERS</div>
+        <div id="word-stats">0 WORDS</div>
+        <div id="timer-display"></div>
+    </div>
 
     <div id="modal">
         <div class="modal-box">
-            <input type="password" id="set-token" placeholder="GitHub Token" style="width:100%; margin-bottom:10px; padding:10px;">
-            <input type="text" id="set-repo" placeholder="user/repo" style="width:100%; margin-bottom:10px; padding:10px;">
-            <button onclick="saveSettings()" style="width:100%; padding:10px; background:var(--accent); color:white; border:none; cursor:pointer;">CONNECT</button>
+            <input type="password" id="set-token" placeholder="GitHub Token" style="width:100%; margin-bottom:12px; padding:12px; background:var(--bg); color:var(--text); border:1px solid var(--text); outline:none;">
+            <input type="text" id="set-repo" placeholder="user/repo" style="width:100%; margin-bottom:12px; padding:12px; background:var(--bg); color:var(--text); border:1px solid var(--text); outline:none;">
+            <button onclick="saveSettings()" style="width:100%; padding:12px; background:var(--accent); color:white; border:none; cursor:pointer; font-family:monospace; font-size:11px;">ESTABLISH CONNECTION</button>
         </div>
     </div>
 
     <script>
-        const editor = document.getElementById('writing-area');
-        const player = new Audio();
-        const canvas = document.getElementById('wave-canvas');
+        const editor = document.getElementById('writing-area'), player = new Audio(), canvas = document.getElementById('wave-canvas');
         let fullHistory = [];
 
-        // --- GITHUB & SYNC ---
+        // --- GITHUB ---
         async function sync() {
             const token = localStorage.getItem('v_token'), repo = localStorage.getItem('v_repo');
             if(!token || !repo) return openSettings();
             document.getElementById('sync-btn').innerText = "○";
-            const tags = document.getElementById('tag-in').value;
             const url = `https://api.github.com/repos/${repo}/contents/vault.json`;
-            let sha = "", content = [];
             try {
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-                if(res.ok) {
-                    const j = await res.json(); sha = j.sha;
-                    content = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content), c => c.charCodeAt(0))));
-                }
-                content.push({ id: Date.now(), date: new Date().toISOString(), text: editor.innerText.trim(), tags: tags });
-                await pushContent(content, sha, "Commit");
+                let sha = "", content = [];
+                if(res.ok) { const j = await res.json(); sha = j.sha; content = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content), c => c.charCodeAt(0)))); }
+                content.push({ id: Date.now(), date: new Date().toISOString(), text: editor.innerText.trim(), tags: document.getElementById('tag-in').value });
+                const bytes = new TextEncoder().encode(JSON.stringify(content, null, 2));
+                await fetch(url, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ message: "Sync", content: btoa(String.fromCharCode(...bytes)), sha }) });
                 editor.innerText = ""; document.getElementById('tag-in').value = ""; loadHistory();
             } catch(e) { alert("Sync Error"); }
             document.getElementById('sync-btn').innerText = "◈";
         }
 
-        async function pushContent(content, sha, msg) {
-            const token = localStorage.getItem('v_token'), repo = localStorage.getItem('v_repo');
-            const bytes = new TextEncoder().encode(JSON.stringify(content, null, 2));
-            return fetch(`https://api.github.com/repos/${repo}/contents/vault.json`, {
-                method: 'PUT', headers: { 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ message: msg, content: btoa(String.fromCharCode(...bytes)), sha })
-            });
-        }
-
         async function deleteEntry(id, e) {
-            e.stopPropagation();
-            if(!confirm("Erase this entry forever?")) return;
+            e.stopPropagation(); if(!confirm("Discard entry?")) return;
             const token = localStorage.getItem('v_token'), repo = localStorage.getItem('v_repo');
             const res = await fetch(`https://api.github.com/repos/${repo}/contents/vault.json`, { headers: { 'Authorization': `Bearer ${token}` } });
             if(res.ok) {
                 const j = await res.json();
                 let content = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content), c => c.charCodeAt(0))));
-                content = content.filter(item => item.id !== id);
-                await pushContent(content, j.sha, "Delete Entry");
+                content = content.filter(i => i.id !== id);
+                const bytes = new TextEncoder().encode(JSON.stringify(content, null, 2));
+                await fetch(`https://api.github.com/repos/${repo}/contents/vault.json`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ message: "Delete", content: btoa(String.fromCharCode(...bytes)), sha: j.sha }) });
                 loadHistory();
             }
         }
@@ -175,8 +176,8 @@
         function renderHistory(data) {
             document.getElementById('history-list').innerHTML = data.slice().reverse().map(h => `
                 <div class="history-item" onclick="loadEntry(${h.id})">
-                    <div style="font-size:9px; opacity:0.4; font-family:monospace;">${new Date(h.date).toLocaleDateString()}</div>
-                    <div style="margin-top:4px; font-size:13px;">${h.text.substring(0,40)}...</div>
+                    <div style="font-size:8px; opacity:0.3; font-family:monospace; margin-bottom:4px;">${new Date(h.date).toLocaleDateString()}</div>
+                    <div class="item-preview">${h.text.substring(0,35)}...</div>
                     <div class="item-tags">${h.tags || ''}</div>
                     <div class="del-btn" onclick="deleteEntry(${h.id}, event)">×</div>
                 </div>
@@ -185,12 +186,9 @@
 
         function filterHistory() {
             const q = document.getElementById('search-box').value.toLowerCase();
-            if(!q) return renderHistory(fullHistory);
-            
-            // Prioritize Tag Matches
             const tagged = fullHistory.filter(h => h.tags && h.tags.toLowerCase().includes(q));
             const texted = fullHistory.filter(h => !tagged.includes(h) && h.text.toLowerCase().includes(q));
-            renderHistory([...tagged, ...texted]);
+            renderHistory(q ? [...tagged, ...texted] : fullHistory);
         }
 
         function loadEntry(id) {
@@ -201,46 +199,68 @@
         // --- AUDIO ---
         document.getElementById('au-in').onchange = (e) => {
             const file = e.target.files[0]; if(!file) return;
-            document.getElementById('file-hud').innerText = file.name.toUpperCase();
             player.src = URL.createObjectURL(file);
             document.getElementById('audio-deck').style.display = 'flex';
-            drawWave(); player.play(); document.getElementById('pp-btn').innerText = "⏸";
+            drawWave(); player.play(); updatePlayBtn();
         };
         player.ontimeupdate = () => {
             document.getElementById('play-cursor').style.left = (player.currentTime / player.duration) * 100 + "%";
-            document.getElementById('cur-time').innerText = `${format(player.currentTime)} / ${format(player.duration || 0)}`;
+            document.getElementById('cur-time').innerText = `${fmt(player.currentTime)}/${fmt(player.duration || 0)}`;
         };
-        function format(s) { return Math.floor(s/60) + ":" + Math.floor(s%60).toString().padStart(2,'0'); }
+        function fmt(s) { return Math.floor(s/60) + ":" + Math.floor(s%60).toString().padStart(2,'0'); }
         function drawWave() {
             const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--wave').trim();
-            for(let i=0; i<canvas.width; i+=4) { const h = Math.random() * (canvas.height * 0.7); ctx.fillRect(i, (canvas.height - h)/2, 2, h); }
+            for(let i=0; i<canvas.width; i+=4) { const h = Math.random() * (canvas.height * 0.5); ctx.fillRect(i, (canvas.height - h)/2, 1.5, h); }
         }
-        function togglePlay() { player.paused ? player.play() : player.pause(); document.getElementById('pp-btn').innerText = player.paused ? "⏵" : "⏸"; }
-        function stopAudio() { player.pause(); player.currentTime = 0; document.getElementById('pp-btn').innerText = "⏵"; }
+        function togglePlay() { player.paused ? player.play() : player.pause(); updatePlayBtn(); }
+        function updatePlayBtn() {
+            const path = document.getElementById('pp-path');
+            path.setAttribute('points', player.paused ? "5 3 19 12 5 21 5 3" : "6 4 10 4 10 20 6 20 6 4 14 4 18 4 18 20 14 20 14 4");
+            path.setAttribute('fill', player.paused ? 'none' : 'currentColor');
+        }
+        function stopAudio() { player.pause(); player.currentTime = 0; updatePlayBtn(); }
         function seekAudio(e) { player.currentTime = (e.offsetX / e.currentTarget.clientWidth) * player.duration; }
 
-        // --- CORE TOOLS ---
-        function insertStamp() {
-            const d = new Date();
-            const s = `[${d.toLocaleDateString()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}] `;
-            document.execCommand('insertText', false, s);
+        // --- TOOLS ---
+        function copyText() {
+            navigator.clipboard.writeText(editor.innerText);
+            const btn = document.getElementById('copy-btn');
+            btn.innerText = "✓"; setTimeout(() => btn.innerText = "⎘", 1200);
+        }
+        function cycleFont() {
+            const fonts = ["'Georgia', serif", "'Courier New', monospace", "sans-serif"];
+            let idx = fonts.findIndex(f => editor.style.fontFamily.includes(f.split("'")[1] || f));
+            editor.style.fontFamily = fonts[(idx + 1) % fonts.length];
+        }
+        function cycleSize() {
+            const s = ["16px", "19px", "24px", "32px"];
+            let idx = s.indexOf(editor.style.fontSize || "19px");
+            editor.style.fontSize = s[(idx + 1) % s.length];
+        }
+        function updateStats() {
+            document.getElementById('word-stats').innerText = `${editor.innerText.trim() ? editor.innerText.trim().split(/\s+/).length : 0} WORDS`;
+            document.getElementById('char-stats').innerText = `${editor.innerText.length} CHARACTERS`;
         }
         function startTimer() {
-            const m = prompt("Session minutes:", "20"); if(!m) return;
-            let s = m * 60; const display = document.getElementById('timer-display');
+            const m = prompt("Minutes:", "20"); if(!m) return;
+            let s = m * 60; const disp = document.getElementById('timer-display');
             const int = setInterval(() => {
-                if(s <= 0) { clearInterval(int); display.innerText = "DONE"; document.getElementById('main-body').classList.add('timer-finished'); }
-                else { display.innerText = `SESSION: ${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; s--; }
+                if(s <= 0) { clearInterval(int); disp.innerText = "DONE"; document.documentElement.classList.add('timer-finished'); }
+                else { disp.innerText = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; s--; }
             }, 1000);
         }
+        function stopAlarm() { document.documentElement.classList.remove('timer-finished'); }
         function cycleTheme() {
             const th = ["dark", "light", "oled", "sepia"];
             const cur = document.documentElement.getAttribute('data-theme');
             document.documentElement.setAttribute('data-theme', th[(th.indexOf(cur)+1)%th.length]);
             setTimeout(drawWave, 100);
         }
-        function updateStats() { document.getElementById('stats').innerText = `${editor.innerText.trim() ? editor.innerText.trim().split(/\s+/).length : 0} WORDS`; }
+        function insertStamp() {
+            const d = new Date();
+            document.execCommand('insertText', false, `[${d.toLocaleDateString()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}] `);
+        }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function openSettings() { document.getElementById('modal').style.display = 'flex'; }
         function saveSettings() {
@@ -248,19 +268,9 @@
             localStorage.setItem('v_repo', document.getElementById('set-repo').value);
             document.getElementById('modal').style.display = 'none'; loadHistory();
         }
-        function copyText() { navigator.clipboard.writeText(editor.innerText); }
         function downloadText() {
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([editor.innerText], {type: 'text/plain'}));
-            a.download = `scout_${Date.now()}.txt`; a.click();
-        }
-        function cycleFont() {
-            const f = ["'Georgia', serif", "'Courier New', monospace", "sans-serif"];
-            editor.style.fontFamily = f[(f.indexOf(editor.style.fontFamily) + 1) % f.length] || f[0];
-        }
-        function cycleSize() {
-            const s = ["16px", "19px", "24px", "32px"];
-            const cur = editor.style.fontSize || "19px";
-            editor.style.fontSize = s[(s.indexOf(cur) + 1) % s.length];
+            a.download = `entry_${Date.now()}.txt`; a.click();
         }
         function toggleFullscreen() { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
 
