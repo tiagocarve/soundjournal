@@ -6,61 +6,70 @@
     <style>
         :root { 
             --bg: #000; --panel: #0d0d0d; --text-dim: #555; --text-mid: #999; --text-bright: #eceae4; 
-            --accent: #00ffcc; --border: #222; --warn: #ffbb00; --row-hover: #181818;
+            --accent: #00ffcc; --border: #222; --warn: #ff4444; --row-hover: #181818;
         }
         body.light-mode {
             --bg: #f5f5f7; --panel: #ffffff; --text-dim: #888; --text-mid: #444; --text-bright: #1d1d1f; 
-            --accent: #0071e3; --border: #d2d2d7; --warn: #f5a623; --row-hover: #f0f0f2;
+            --accent: #0071e3; --border: #d2d2d7; --warn: #d70000; --row-hover: #f0f0f2;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; transition: background 0.2s, color 0.1s; }
-        body { background: var(--bg); color: var(--text-bright); font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 100px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text-bright); font-family: -apple-system, system-ui, sans-serif; height: 100vh; overflow: hidden; }
         
-        .app-container { width: 100%; max-width: 95vw; padding: 30px; }
-        header { border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        /* THE FIX: Padding at bottom ensures no overlap with player */
+        .app-container { width: 100%; max-width: 98vw; height: 100%; padding: 20px 20px 80px 20px; display: flex; flex-direction: column; }
+        
+        header { border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         h1 { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
 
-        .toolbar { display: flex; gap: 10px; align-items: center; background: var(--panel); padding: 12px; border-radius: 4px; border: 1px solid var(--border); margin-bottom: 20px; position: sticky; top: 0; z-index: 10; }
-        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text-bright); padding: 10px; border-radius: 3px; font-family: monospace; font-size: 12px; outline: none; }
+        .toolbar { display: flex; gap: 10px; align-items: center; background: var(--panel); padding: 12px; border-radius: 4px; border: 1px solid var(--border); margin-bottom: 15px; flex-shrink: 0; flex-wrap: wrap; }
+        input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text-bright); padding: 8px; border-radius: 3px; font-family: monospace; font-size: 12px; outline: none; }
         
-        .btn { background: var(--panel); border: 1px solid var(--border); color: var(--text-bright); cursor: pointer; font-family: monospace; font-size: 10px; font-weight: bold; height: 36px; padding: 0 12px; border-radius: 3px; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn { background: var(--panel); border: 1px solid var(--border); color: var(--text-bright); cursor: pointer; font-family: monospace; font-size: 10px; font-weight: bold; height: 34px; padding: 0 10px; border-radius: 3px; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
         .btn:hover { border-color: var(--text-mid); background: var(--row-hover); }
-        .btn-primary { background: var(--text-bright); color: var(--bg); border: none; padding: 0 20px; }
-        
-        .table-viewport { width: 100%; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; max-height: 60vh; }
+        .btn-primary { background: var(--accent); color: #000; border: none; padding: 0 20px; }
+        .btn-danger { color: var(--warn); border-color: #400; }
+
+        .table-viewport { flex: 1; width: 100%; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; position: relative; }
         table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; }
-        th { position: sticky; top: 0; background: var(--panel); text-align: left; padding: 12px 15px; border-bottom: 1px solid var(--border); color: var(--accent); font-size: 9px; z-index: 5; cursor: pointer; white-space: nowrap; }
-        th:hover { color: #fff; }
+        th { position: sticky; top: 0; background: var(--panel); text-align: left; padding: 12px 15px; border-bottom: 2px solid var(--border); color: var(--accent); font-size: 9px; z-index: 10; cursor: pointer; white-space: nowrap; }
         td { padding: 8px 15px; border-bottom: 1px solid var(--border); color: var(--text-mid); white-space: nowrap; }
         tr:hover { background: var(--row-hover); }
 
-        .player-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 15px 40px; display: flex; align-items: center; gap: 20px; z-index: 20; justify-content: center; }
-        audio { height: 30px; width: 300px; }
-        body:not(.light-mode) audio { filter: invert(100%) hue-rotate(180deg) brightness(1.5); }
+        .stat-badge { background: #1a1a1a; padding: 4px 10px; border-radius: 3px; color: var(--accent); margin-left: 10px; border: 1px solid var(--border); font-size: 9px; }
+
+        .player-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 10px 40px; display: flex; align-items: center; gap: 20px; z-index: 100; justify-content: center; height: 70px; }
+        audio { height: 30px; width: 350px; }
+
+        #modal-box { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:none; z-index:200; align-items:center; justify-content:center; }
+        .modal-inner { background:var(--panel); border:1px solid var(--border); padding:25px; border-radius:8px; width:100%; max-width:600px; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <header>
-        <h1>SC_OMNI // V2.10</h1>
+        <div>
+            <h1>SC_OMNI // V2.15</h1>
+            <span id="obj-count" class="stat-badge">SHOWING: 0 / 0</span>
+        </div>
         <div style="display:flex; gap:8px;">
             <button class="btn" onclick="document.body.classList.toggle('light-mode')">◐</button>
-            <button class="btn" onclick="toggleTrashView()">🗑</button>
-            <button class="btn" onclick="openExportModal()">EXPORT</button>
-            <button class="btn btn-primary" onclick="selectFolder()">SCAN SOURCE</button>
+            <button class="btn" onclick="openExportModal()">EXPORT CSV</button>
+            <button class="btn btn-primary" onclick="startScan()">SCAN SOURCE</button>
         </div>
     </header>
 
     <div class="toolbar">
-        <input type="text" id="search-input" placeholder="Filter..." oninput="render()" style="flex:1;">
+        <input type="text" id="search-input" placeholder="Search..." oninput="render()" style="flex:1;">
         <select id="view-type" onchange="render()">
-            <option value="files">FILES</option>
-            <option value="folders">FOLDERS</option>
+            <option value="files">FILES ONLY</option>
+            <option value="folders">FOLDERS ONLY</option>
+            <option value="all">ALL ENTRIES</option>
         </select>
-        <select id="unique-col-select" onchange="render()">
-            <option value="none">GROUPING: OFF</option>
-        </select>
+        <select id="unique-col-select" onchange="render()"><option value="none">GROUPING: OFF</option></select>
+        <button class="btn" id="trash-toggle" onclick="toggleTrashView()">SHOW TRASH (0)</button>
+        <button class="btn btn-danger" onclick="resetScout()">PURGE ALL</button>
     </div>
 
     <div class="table-viewport">
@@ -72,19 +81,17 @@
 </div>
 
 <div class="player-bar">
-    <div id="now-playing" style="font-size:10px; width:200px; overflow:hidden; text-overflow:ellipsis;">IDLE</div>
-    <audio id="global-audio" controls onended="playNext()"></audio>
-    <button class="btn" onclick="playNext()">NEXT ➔</button>
+    <div id="now-playing" style="font-size:10px; width:250px; overflow:hidden; text-overflow:ellipsis; font-family: monospace; color: var(--accent);">IDLE</div>
+    <audio id="global-audio" controls></audio>
 </div>
 
-<div id="modal-box" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; z-index:100; align-items:center; justify-content:center; padding:40px;">
-    <div style="background:var(--panel); border:1px solid var(--border); padding:25px; border-radius:8px; width:100%; max-width:700px; display:flex; flex-direction:column;">
-        <h2 id="modal-title" style="font-size:10px; color:var(--accent); margin-bottom:15px; font-family:monospace;"></h2>
-        <div id="modal-content"></div>
-        <textarea id="export-text" style="display:none; height:300px; background:var(--bg); color:var(--text-bright); border:1px solid var(--border); padding:10px; font-family:monospace; margin:15px 0;"></textarea>
+<div id="modal-box">
+    <div class="modal-inner">
+        <h2 style="font-size:10px; color:var(--accent); margin-bottom:15px; font-family:monospace;">EXPORT PREVIEW // RENAME COLUMNS</h2>
+        <div id="header-inputs" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;"></div>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button id="btn-csv" class="btn" onclick="downloadCSV()">DOWNLOAD CSV</button>
-            <button class="btn" onclick="document.getElementById('modal-box').style.display='none'">CLOSE</button>
+            <button class="btn btn-primary" onclick="downloadCSV()">DOWNLOAD CSV</button>
+            <button class="btn" onclick="document.getElementById('modal-box').style.display='none'">CANCEL</button>
         </div>
     </div>
 </div>
@@ -93,81 +100,52 @@
     let inventory = [];
     let currentFiltered = [];
     let maxDepth = 0;
-    let rootHandle = null;
+    let customHeaders = [];
     let sortState = { col: null, dir: 1 };
+    let showingTrash = false;
 
-    async function selectFolder() {
+    async function startScan() {
         try {
-            rootHandle = await window.showDirectoryPicker();
-            inventory = []; maxDepth = 0;
-            await scanRecursive(rootHandle);
+            const root = await window.showDirectoryPicker();
+            inventory = [];
+            const queue = [{ handle: root, path: [] }];
+            
+            while (queue.length > 0) {
+                const { handle, path } = queue.shift();
+                for await (const entry of handle.values()) {
+                    if (entry.name.startsWith('.')) continue;
+                    const itemPath = [...path, entry.name];
+                    maxDepth = Math.max(maxDepth, itemPath.length);
+                    
+                    inventory.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        handle: entry,
+                        path: itemPath,
+                        isDir: entry.kind === 'directory',
+                        type: entry.kind === 'directory' ? 'FOLDER' : entry.name.split('.').pop().toUpperCase(),
+                        status: 'active'
+                    });
+                    if (entry.kind === 'directory') queue.push({ handle: entry, path: itemPath });
+                }
+                if (inventory.length % 50 === 0) render();
+            }
             updateSelectors();
             render();
-        } catch (e) { console.warn("Scan cancelled."); }
-    }
-
-    async function scanRecursive(handle, path = []) {
-        for await (const entry of handle.values()) {
-            if (entry.name === '.scout_trash' || entry.name.startsWith('.')) continue;
-            const currentPath = [...path, entry.name];
-            maxDepth = Math.max(maxDepth, currentPath.length);
-            const item = { handle: entry, path: currentPath, isDir: (entry.kind === 'directory'), rawSize: 0, rawDur: 0 };
-            if (!item.isDir) {
-                const file = await entry.getFile();
-                item.rawSize = file.size;
-                item.sizeDisplay = (file.size / (1024 * 1024)).toFixed(2) + " MB";
-                item.isAudio = /\.(mp3|wav|ogg|flac|m4a)$/i.test(entry.name);
-                if (item.isAudio) {
-                    const dur = await getDuration(file);
-                    item.rawDur = dur.raw;
-                    item.durDisplay = dur.display;
-                }
-            }
-            inventory.push(item);
-            if (item.isDir) await scanRecursive(entry, currentPath);
-        }
-    }
-
-    function getDuration(file) {
-        return new Promise((res) => {
-            const audio = new Audio();
-            audio.src = URL.createObjectURL(file);
-            audio.onloadedmetadata = () => {
-                const d = audio.duration;
-                const m = Math.floor(d / 60);
-                const s = Math.floor(d % 60);
-                res({ raw: d, display: `${m}:${s.toString().padStart(2, '0')}` });
-            };
-            audio.onerror = () => res({ raw: 0, display: "--" });
-        });
-    }
-
-    function updateSelectors() {
-        const sel = document.getElementById('unique-col-select');
-        sel.innerHTML = '<option value="none">GROUPING: OFF</option>';
-        for(let i=0; i<maxDepth; i++) sel.innerHTML += `<option value="${i}">UNIQUE LEVEL ${i+1}</option>`;
-    }
-
-    function sortBy(colType, index = null) {
-        if (sortState.col === (index !== null ? `l${index}` : colType)) {
-            sortState.dir *= -1;
-        } else {
-            sortState.col = (index !== null ? `l${index}` : colType);
-            sortState.dir = 1;
-        }
-        render();
+        } catch (e) { console.error(e); }
     }
 
     function render() {
-        const head = document.getElementById('table-head');
-        const body = document.getElementById('table-body');
         const query = document.getElementById('search-input').value.toLowerCase();
         const viewType = document.getElementById('view-type').value;
         const uniqueIdx = document.getElementById('unique-col-select').value;
-        
+        const trashCount = inventory.filter(i => i.status === 'trash').length;
+        document.getElementById('trash-toggle').innerText = `SHOW TRASH (${trashCount})`;
+
         currentFiltered = inventory.filter(f => {
-            const matchesSearch = f.path.join(' ').toLowerCase().includes(query);
-            return viewType === 'folders' ? (matchesSearch && f.isDir) : (matchesSearch && !f.isDir);
+            const matchesStatus = showingTrash ? f.status === 'trash' : f.status === 'active';
+            const matchesSearch = f.path.join('/').toLowerCase().includes(query);
+            const matchesType = viewType === 'all' || (viewType === 'folders' ? f.isDir : !f.isDir);
+            return matchesStatus && matchesSearch && matchesType;
         });
 
         if (uniqueIdx !== 'none') {
@@ -176,101 +154,105 @@
             currentFiltered = currentFiltered.filter(f => f.path[idx] && !seen.has(f.path[idx]) && seen.add(f.path[idx]));
         }
 
-        // Apply Sort
-        if (sortState.col) {
-            currentFiltered.sort((a, b) => {
-                let vA, vB;
-                if (sortState.col.startsWith('l')) {
-                    const idx = parseInt(sortState.col.substring(1));
-                    vA = a.path[idx] || ''; vB = b.path[idx] || '';
-                } else if (sortState.col === 'size') {
-                    vA = a.rawSize; vB = b.rawSize;
-                } else if (sortState.col === 'dur') {
-                    vA = a.rawDur; vB = b.rawDur;
-                }
-                return vA > vB ? (1 * sortState.dir) : (-1 * sortState.dir);
-            });
-        }
+        // Headers
+        const head = document.getElementById('table-head');
+        let hHTML = '<th>MGMT</th><th>ACTIONS</th>';
+        for (let i = 0; i < maxDepth; i++) hHTML += `<th onclick="sortBy(${i})">${customHeaders[i] || 'LEVEL '+(i+1)}</th>`;
+        hHTML += '<th>TYPE</th>';
+        head.innerHTML = hHTML;
 
-        head.innerHTML = '<th style="width:100px">MGMT</th>';
-        for(let i=0; i<maxDepth; i++) {
-            const th = document.createElement('th');
-            th.innerText = `LEVEL ${i+1}`;
-            th.onclick = () => sortBy('level', i);
-            head.appendChild(th);
-        }
-        const thSize = document.createElement('th'); thSize.innerText = "SIZE"; thSize.onclick = () => sortBy('size'); head.appendChild(thSize);
-        const thDur = document.createElement('th'); thDur.innerText = "DUR"; thDur.onclick = () => sortBy('dur'); head.appendChild(thDur);
-
+        // Rows
+        const body = document.getElementById('table-body');
         body.innerHTML = '';
-        currentFiltered.forEach((item, index) => {
+        currentFiltered.forEach(item => {
+            const isAudio = /\.(mp3|wav|ogg|flac|m4a)$/i.test(item.path[item.path.length-1]);
             const tr = document.createElement('tr');
-            let actions = `<div style="display:flex; gap:4px;">`;
-            if (item.isAudio) actions += `<button class="btn" style="width:28px;padding:0" onclick="playIndex(${index})">▶</button>`;
-            actions += `<button class="btn" style="width:28px;padding:0" onclick="startRename(this, ${index})">✎</button>`;
-            if (!item.isDir) actions += `<button class="btn" style="width:28px;padding:0;color:var(--warn)" onclick="moveToTrash(${index})">🗑</button>`;
-            actions += `</div>`;
             
-            let cols = `<td>${actions}</td>`;
-            for(let i=0; i<maxDepth; i++) cols += `<td>${item.path[i] || ''}</td>`;
-            cols += `<td>${item.sizeDisplay || '--'}</td><td>${item.durDisplay || '--'}</td>`;
-            tr.innerHTML = cols;
+            let row = `<td>${isAudio ? `<button class="btn" onclick="playFile('${item.id}')">▶</button>` : ''}</td>`;
+            row += `<td style="display:flex; gap:4px;">
+                <button class="btn" title="Rename" onclick="renameItem('${item.id}')">✎</button>
+                <button class="btn" title="${showingTrash?'Restore':'Delete'}" onclick="toggleStatus('${item.id}')">${showingTrash?'↺':'🗑'}</button>
+            </td>`;
+            
+            for (let i = 0; i < maxDepth; i++) row += `<td>${item.path[i] || ''}</td>`;
+            row += `<td>${item.type}</td>`;
+            
+            tr.innerHTML = row;
             body.appendChild(tr);
         });
+
+        document.getElementById('obj-count').innerText = `SHOWING: ${currentFiltered.length} / ${inventory.filter(i => i.status === 'active').length}`;
     }
 
-    async function playIndex(idx) {
-        const item = currentFiltered[idx];
+    function toggleStatus(id) {
+        const item = inventory.find(i => i.id === id);
+        item.status = item.status === 'active' ? 'trash' : 'active';
+        render();
+    }
+
+    function renameItem(id) {
+        const item = inventory.find(i => i.id === id);
+        const lastIdx = item.path.length - 1;
+        const newName = prompt("Rename Entry:", item.path[lastIdx]);
+        if (newName) {
+            item.path[lastIdx] = newName;
+            render();
+        }
+    }
+
+    async function playFile(id) {
+        const item = inventory.find(i => i.id === id);
         const file = await item.handle.getFile();
         const player = document.getElementById('global-audio');
         if (player.src) URL.revokeObjectURL(player.src);
         player.src = URL.createObjectURL(file);
-        document.getElementById('now-playing').innerText = item.handle.name;
+        document.getElementById('now-playing').innerText = item.path[item.path.length-1].toUpperCase();
         player.play();
     }
 
-    async function moveToTrash(idx) {
-        const item = currentFiltered[idx];
-        const trashDir = await rootHandle.getDirectoryHandle('.scout_trash', { create: true });
-        await item.handle.move(trashDir, item.handle.name);
-        inventory = inventory.filter(f => f !== item);
+    function toggleTrashView() {
+        showingTrash = !showingTrash;
+        document.getElementById('trash-toggle').style.borderColor = showingTrash ? 'var(--accent)' : 'var(--border)';
         render();
     }
 
+    function updateSelectors() {
+        const sel = document.getElementById('unique-col-select');
+        sel.innerHTML = '<option value="none">GROUPING: OFF</option>';
+        for (let i = 0; i < maxDepth; i++) {
+            if (!customHeaders[i]) customHeaders[i] = `LEVEL ${i+1}`;
+            sel.innerHTML += `<option value="${i}">UNIQUE BY ${customHeaders[i]}</option>`;
+        }
+    }
+
     function openExportModal() {
-        const modal = document.getElementById('modal-box');
-        const area = document.getElementById('export-text');
-        document.getElementById('modal-title').innerText = "EXPORT PREVIEW";
-        area.style.display = "block";
-        area.value = currentFiltered.map(f => f.path.join('/')).join('\n');
-        modal.style.display = 'flex';
+        const container = document.getElementById('header-inputs');
+        container.innerHTML = '';
+        customHeaders.forEach((h, i) => {
+            container.innerHTML += `<div><label style="font-size:9px; color:var(--text-dim)">L${i+1}</label><br>
+            <input type="text" value="${h}" oninput="customHeaders[${i}]=this.value" style="width:100%"></div>`;
+        });
+        document.getElementById('modal-box').style.display = 'flex';
     }
 
     function downloadCSV() {
-        let csv = "Path,Size,Duration\n";
-        currentFiltered.forEach(f => csv += `"${f.path.join('/')}","${f.sizeDisplay||''}","${f.durDisplay||''}"\n`);
+        let csv = customHeaders.join(',') + ",TYPE\n";
+        currentFiltered.forEach(f => {
+            let row = [];
+            for (let i = 0; i < maxDepth; i++) row.push(`"${f.path[i] || ''}"`);
+            row.push(`"${f.type}"`);
+            csv += row.join(',') + "\n";
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-        a.download = `OmniScout_Export.csv`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `Soundjournal_Export.csv`;
         a.click();
+        document.getElementById('modal-box').style.display = 'none';
+        render();
     }
 
-    function startRename(btn, idx) {
-        const item = currentFiltered[idx];
-        const cell = btn.closest('tr').children[item.path.length]; // Find name cell
-        cell.innerHTML = `<input type="text" style="background:var(--bg);color:var(--text-bright);border:1px solid var(--accent);width:100%" value="${item.handle.name}" onblur="finishRename(this, ${idx})" onkeydown="if(event.key==='Enter') this.blur()">`;
-        cell.querySelector('input').focus();
-    }
-
-    async function finishRename(input, idx) {
-        const newName = input.value.trim();
-        const item = currentFiltered[idx];
-        if (newName && newName !== item.handle.name) {
-            await item.handle.move(newName);
-            item.path[item.path.length-1] = newName;
-            render();
-        } else { render(); }
-    }
+    function resetScout() { if (confirm("Clear all scanned data?")) { inventory = []; render(); } }
 </script>
 </body>
 </html>
