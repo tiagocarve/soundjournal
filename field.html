@@ -109,9 +109,26 @@
     async function handleAudioLoad(input) {
         const file = input.files[0]; if (!file) return;
         currentAudioBlob = file;
+        
+        // Define metadata logic as a separate function to reuse it
+        const processMetadata = () => {
+            if (!audio.duration || isNaN(audio.duration)) return;
+            
+            const endTime = file.lastModified;
+            const durationInMs = audio.duration * 1000;
+            const startTime = new Date(endTime - durationInMs);
+
+            fileStamp = `${startTime.getFullYear()}${(startTime.getMonth()+1).toString().padStart(2,'0')}${startTime.getDate().toString().padStart(2,'0')}_${startTime.getHours().toString().padStart(2,'0')}${startTime.getMinutes().toString().padStart(2,'0')}`;
+            
+            updateAutoTitle();
+            document.getElementById('rename-btn').style.display = 'block';
+            update();
+        };
+
+        // Set up the listener BEFORE setting the src
+        audio.addEventListener('loadedmetadata', processMetadata, { once: true });
+        
         audio.src = URL.createObjectURL(file);
-        const d = new Date(file.lastModified);
-        fileStamp = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
         document.getElementById('cur-file-ui').innerText = file.name.toUpperCase();
         
         const arrayBuffer = await file.arrayBuffer();
@@ -119,11 +136,8 @@
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         drawRealWave(audioBuffer);
 
-        audio.onloadedmetadata = () => {
-            updateAutoTitle();
-            document.getElementById('rename-btn').style.display = 'block';
-            update();
-        };
+        // Fallback: If metadata is already ready, fire manually
+        if (audio.readyState >= 1) processMetadata();
     }
 
     function updateAutoTitle() {
@@ -163,11 +177,13 @@
             const d = c.match(/# DESCRIPTION\n([\s\S]*?)\n# ANNOTATIONS/);
             if (d) document.getElementById('zen-editor').value = d[1].trim();
             const n = c.matchAll(/- \[(\d+:\d+)\] (.*)/g);
-            notes = Array.from(n).map(m => {
-                const [min, sec] = m[1].split(':').map(Number);
-                return { id: Date.now() + Math.random(), time: (min * 60) + sec, text: m[2] };
-            });
-            renderNotes();
+            if (n) {
+                notes = Array.from(n).map(m => {
+                    const [min, sec] = m[1].split(':').map(Number);
+                    return { id: Date.now() + Math.random(), time: (min * 60) + sec, text: m[2] };
+                });
+                renderNotes();
+            }
         };
         reader.readAsText(file);
     }
