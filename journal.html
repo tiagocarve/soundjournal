@@ -2,12 +2,16 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>Soundjournal | Scout V5.4</title>
+    <title>Soundjournal | Scout V5.6</title>
     <style>
         :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --wave: #268bd2; --pulse: #e8dfc4; }
         :root[data-theme="dark"] { --bg: #1a1a1a; --text: #a0a0a0; --ui: #2a2a2a; --accent: #0088cc; --wave: #444; --pulse: #333; }
         :root[data-theme="oled"] { --bg: #000000; --text: #888888; --ui: #111111; --accent: #ffffff; --wave: #333; --pulse: #222; }
         :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaa2; --accent: #8c6339; --wave: #8c6339; --pulse: #dfd09f; }
+
+        /* --- THE VOID PROTOCOL: INVISIBLE SCROLLING --- */
+        ::-webkit-scrollbar { display: none; } /* Chrome, Safari, Edge */
+        * { -ms-overflow-style: none; scrollbar-width: none; } /* IE, Firefox */
 
         @keyframes globalPulse { 0%, 100% { background-color: var(--bg); } 50% { background-color: var(--pulse); } }
         html.timer-finished, html.timer-finished body, html.timer-finished #top-bar { animation: globalPulse 1.5s infinite !important; }
