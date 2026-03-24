@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aesthetic Studio v15</title>
+    <style>
+        :root { --accent: #007aff; --bg: #050505; --panel: #121212; --border: #282828; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; display: flex; justify-content: center; padding: 30px; margin: 0; }
+        
+        .container { display: flex; gap: 25px; width: 1150px; align-items: flex-start; }
+        .sidebar { width: 300px; flex-shrink: 0; background: var(--panel); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
+        .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+
+        .group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 9px; text-transform: uppercase; color: #666; font-weight: 700; letter-spacing: 1px; }
+        
+        select, input[type="file"], input[type="color"] { background: #1a1a1a; border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; font-size: 11px; width: 100%; box-sizing: border-box; }
+        select[multiple] { height: 90px; }
+        input[type="range"] { accent-color: var(--accent); cursor: pointer; height: 4px; width: 100%; }
+        
+        .canvas-wrap { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        #mainCanvas { width: 100%; height: 100%; display: block; object-fit: contain; }
+
+        .timeline-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 15px; }
+        .waveform-wrap { position: relative; height: 60px; background: #000; border-radius: 6px; border: 1px solid #222; margin-top: 10px; overflow: hidden; }
+        #waveCanvas { width: 100%; height: 100%; opacity: 0.3; pointer-events: none; }
+        
+        .handle { position: absolute; top: 0; height: 100%; width: 2px; background: var(--accent); cursor: ew-resize; z-index: 10; box-shadow: 0 0 8px var(--accent); }
+        .selection-overlay { position: absolute; top: 0; height: 100%; background: rgba(0, 122, 255, 0.15); pointer-events: none; border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); }
+
+        .actions { display: flex; gap: 8px; }
+        button { flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 11px; }
+        #playBtn { background: #222; color: #fff; border: 1px solid #333; }
+        #renderBtn { background: #fff; color: #000; }
+        #renderBtn:disabled { opacity: 0.2; }
+        .status { font-size: 10px; color: var(--accent); text-align: center; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <div class="group">
+            <label>1. Background</label>
+            <select id="bgMode"><option value="image">Photo</option><option value="color">Solid Color</option></select>
+            <input type="file" id="mediaIn" accept="image/*">
+            <input type="color" id="bgColor" value="#4a0e0e" style="display:none; height:35px;">
+        </div>
+        <div class="group">
+            <label>2. Audio</label>
+            <input type="file" id="audIn" accept="audio/*">
+        </div>
+        <div class="group">
+            <label>3. Visualizers (Ctrl+Click)</label>
+            <select id="waveType" multiple>
+                <option value="line" selected>Minimal Sine</option>
+                <option value="pulseCircle">Pulsing Ring</option>
+                <option value="dots">Dancing Particles</option>
+                <option value="mirrored">Mirrored Bars</option>
+                <option value="horizon">Horizon Glow</option>
+                <option value="floating">Floating Grain</option>
+            </select>
+        </div>
+        <div class="group">
+            <label>4. Atmosphere</label>
+            <select id="fxToggle"><option value="on">Effects: ON</option><option value="off">Effects: OFF</option></select>
+            <label>Blur</label><input type="range" id="blurVal" min="0" max="40" value="0">
+            <label>Pulse</label><input type="range" id="pulseVal" min="0" max="100" value="50">
+            <label>Grain</label><input type="range" id="grainLevel" min="0" max="100" value="30">
+        </div>
+        <div class="actions"><button id="playBtn">PREVIEW</button><button id="renderBtn" disabled>RENDER MP4</button></div>
+        <div id="progress" class="status">READY</div>
+    </div>
+
+    <div class="main-view">
+        <div class="canvas-wrap"><canvas id="mainCanvas" width="1280" height="720"></canvas></div>
+        <div class="timeline-box">
+            <div style="display:flex; justify-content:space-between;"><label>Clip Range</label><label id="timeLabel" style="color:var(--accent); font-family:monospace;">00:00 — 00:00</label></div>
+            <div class="waveform-wrap" id="waveContainer">
+                <canvas id="waveCanvas"></canvas>
+                <div id="selection" class="selection-overlay"></div>
+                <div id="startHandle" class="handle" style="left:0;"></div>
+                <div id="endHandle" class="handle" style="left:100px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
+    const waveCanvas = document.getElementById('waveCanvas'), wCtx = waveCanvas.getContext('2d');
+    const renderBtn = document.getElementById('renderBtn');
+    
+    let bgImg, audioBuffer, audioCtx, audioSource, analyser, isPlaying = false, rawAudioFile;
+    let startTime = 0, endTime = 10;
+
+    const waveContainer = document.getElementById('waveContainer'), startHandle = document.getElementById('startHandle'), endHandle = document.getElementById('endHandle'), selection = document.getElementById('selection');
+
+    document.getElementById('bgMode').onchange = (e) => {
+        const isColor = e.target.value === 'color';
+        document.getElementById('mediaIn').style.display = isColor ? 'none' : 'block';
+        document.getElementById('bgColor').style.display = isColor ? 'block' : 'none';
+    };
+
+    mediaIn.onchange = (e) => {
+        bgImg = new Image();
+        bgImg.src = URL.createObjectURL(e.target.files[0]);
+        bgImg.onload = () => draw(startTime, 0);
+    };
+
+    audIn.onchange = async (e) => {
+        rawAudioFile = e.target.files[0];
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const ab = await rawAudioFile.arrayBuffer();
+        audioBuffer = await audioCtx.decodeAudioData(ab);
+        endTime = Math.min(audioBuffer.duration, 15);
+        drawWaveform(); updateSelection(); renderBtn.disabled = false;
+    };
+
+    function updateSelection() {
+        if (!audioBuffer) return;
+        const dur = audioBuffer.duration, width = waveContainer.offsetWidth;
+        startHandle.style.left = (startTime / dur) * width + "px";
+        endHandle.style.left = (endTime / dur) * width + "px";
+        selection.style.left = (startTime / dur) * width + "px";
+        selection.style.width = ((endTime - startTime) / dur) * width + "px";
+        document.getElementById('timeLabel').innerText = `${formatTime(startTime)} — ${formatTime(endTime)}`;
+    }
+
+    function handleDrag(e, isStart) {
+        const rect = waveContainer.getBoundingClientRect(), dur = audioBuffer.duration;
+        const time = ((e.clientX - rect.left) / rect.width) * dur;
+        if (isStart) startTime = Math.max(0, Math.min(time, endTime - 0.5));
+        else endTime = Math.min(dur, Math.max(time, startTime + 0.5));
+        updateSelection(); draw(startTime, 0);
+    }
+
+    startHandle.onmousedown = () => { window.onmousemove = (e) => handleDrag(e, true); window.onmouseup = () => window.onmousemove = null; };
+    endHandle.onmousedown = () => { window.onmousemove = (e) => handleDrag(e, false); window.onmouseup = () => window.onmousemove = null; };
+
+    function formatTime(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${Math.floor(s%60).toString().padStart(2,'0')}`; }
+
+    function drawWaveform() {
+        waveCanvas.width = waveContainer.offsetWidth; waveCanvas.height = 60;
+        const data = audioBuffer.getChannelData(0), step = Math.ceil(data.length / waveCanvas.width);
+        wCtx.fillStyle = "#444";
+        for(let i=0; i < waveCanvas.width; i++){
+            let min = 1, max = -1;
+            for (let j=0; j<step; j++) { const d = data[(i*step)+j]; if (d < min) min = d; if (d > max) max = d; }
+            wCtx.fillRect(i, (1+min)*30, 1, Math.max(1, (max-min)*30));
+        }
+    }
+
+    function draw(time, amp) {
+        ctx.clearRect(0, 0, 1280, 720);
+        const fxOn = document.getElementById('fxToggle').value === 'on';
+        if (document.getElementById('bgMode').value === 'color') {
+            ctx.fillStyle = document.getElementById('bgColor').value; ctx.fillRect(0, 0, 1280, 720);
+        } else if (bgImg) {
+            const p = fxOn ? 1 + (amp * (document.getElementById('pulseVal').value/100) * 0.15) : 1;
+            const r = Math.max(1280/bgImg.width, 720/bgImg.height) * p;
+            ctx.save(); if(fxOn) ctx.filter = `blur(${document.getElementById('blurVal').value}px)`;
+            ctx.drawImage(bgImg, (1280 - bgImg.width*r)/2, (720 - bgImg.height*r)/2, bgImg.width*r, bgImg.height*r); ctx.restore();
+        }
+        if(!fxOn) return;
+        const g = document.getElementById('grainLevel').value;
+        if (g > 0) {
+            ctx.fillStyle = "white"; for (let i = 0; i < (g * 100); i++) {
+                ctx.globalAlpha = Math.random() * 0.12; ctx.fillRect(Math.random() * 1280, Math.random() * 720, 1.2, 1.2);
+            }
+            ctx.globalAlpha = 1.0;
+        }
+        const selected = Array.from(document.getElementById('waveType').selectedOptions).map(o => o.value);
+        ctx.fillStyle = ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 2;
+        selected.forEach(type => {
+            if(type === 'line') {
+                ctx.beginPath(); for(let i=0; i<1280; i+=10) {
+                    const y = 360 + (Math.sin(i*0.01 + time*5) * (amp*250)); i===0 ? ctx.moveTo(i,y) : ctx.lineTo(i,y);
+                } ctx.stroke();
+            } else if(type === 'pulseCircle') {
+                ctx.beginPath(); ctx.arc(640, 360, 120 + amp*200, 0, Math.PI*2); ctx.stroke();
+            } else if(type === 'dots') {
+                for(let i=0; i<60; i++) { ctx.beginPath(); ctx.arc(Math.random()*1280, 360 + (Math.random()-0.5)*amp*600, 2, 0, Math.PI*2); ctx.fill(); }
+            } else if(type === 'mirrored') {
+                for(let i=0; i<100; i++) { const h = amp*450*Math.random(); ctx.fillRect(i*12.8, 360-h, 10.8, h*2); }
+            } else if(type === 'horizon') {
+                ctx.fillRect(0, 360 - (amp*12)/2, 1280, 1 + amp*12);
+            } else if(type === 'floating') {
+                for(let i=0; i<15; i++) { ctx.globalAlpha = 0.4; ctx.fillRect(Math.random()*1280, 360-180 + Math.random()*360, amp*180, 1.5); }
+            }
+        });
+    }
+
+    document.getElementById('playBtn').onclick = () => {
+        if (isPlaying) { isPlaying = false; audioSource.stop(); document.getElementById('playBtn').innerText = "PREVIEW"; return; }
+        isPlaying = true; document.getElementById('playBtn').innerText = "STOP";
+        analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+        const dArr = new Uint8Array(analyser.frequencyBinCount);
+        audioSource = audioCtx.createBufferSource(); audioSource.buffer = audioBuffer;
+        audioSource.connect(analyser); analyser.connect(audioCtx.destination);
+        audioSource.start(0, startTime);
+        const pbStart = audioCtx.currentTime;
+        (function loop() {
+            if (!isPlaying) return;
+            const cur = startTime + (audioCtx.currentTime - pbStart);
+            if (cur >= endTime) { document.getElementById('playBtn').click(); return; }
+            analyser.getByteFrequencyData(dArr); draw(cur, (dArr.reduce((a,b)=>a+b)/dArr.length/255));
+            requestAnimationFrame(loop);
+        })();
+    };
+
+    renderBtn.onclick = async () => {
+        if(isPlaying) document.getElementById('playBtn').click();
+        renderBtn.disabled = true;
+
+        const audioTag = new Audio();
+        audioTag.src = URL.createObjectURL(rawAudioFile);
+        audioTag.currentTime = startTime;
+
+        // Ensure we capture audio stream correctly
+        await audioTag.play(); audioTag.pause(); // Prime the audio element
+
+        const canvasStream = canvas.captureStream(30);
+        const audioStream = audioTag.captureStream ? audioTag.captureStream() : audioTag.mozCaptureStream();
+        
+        const combinedStream = new MediaStream([
+            ...canvasStream.getVideoTracks(),
+            ...audioStream.getAudioTracks()
+        ]);
+
+        // Attempting MP4 first, falling back to WebM if browser denies codec
+        let mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm; codecs=vp9,opus';
+        
+        const recorder = new MediaRecorder(combinedStream, { mimeType });
+        const chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mimeType });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = mimeType.includes('mp4') ? "studio_export.mp4" : "studio_export.webm";
+            a.click();
+            renderBtn.disabled = false; document.getElementById('progress').innerText = "DONE.";
+        };
+
+        recorder.start();
+        audioTag.play();
+
+        const duration = endTime - startTime;
+        const frames = duration * 30;
+        
+        for (let i = 0; i < frames; i++) {
+            const t = startTime + (i / 30);
+            const amp = Math.abs(audioBuffer.getChannelData(0)[Math.floor(t * audioBuffer.sampleRate)] || 0);
+            draw(t, amp);
+            document.getElementById('progress').innerText = `RENDERING: ${Math.round((i/frames)*100)}%`;
+            await new Promise(r => setTimeout(r, 16)); 
+        }
+
+        recorder.stop();
+        audioTag.pause();
+    };
+</script>
+</body>
+</html>
