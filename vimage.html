@@ -28,11 +28,11 @@
         .selection-overlay { position: absolute; top: 0; height: 100%; background: rgba(0, 122, 255, 0.15); pointer-events: none; border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); }
 
         .actions { display: flex; gap: 8px; }
-        button { flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 11px; }
+        button { flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 11px; transition: 0.2s; }
         #playBtn { background: #222; color: #fff; border: 1px solid #333; }
         #renderBtn { background: #fff; color: #000; }
-        #renderBtn:disabled { opacity: 0.2; }
-        .status { font-size: 10px; color: var(--accent); text-align: center; font-family: monospace; }
+        #renderBtn:disabled { opacity: 0.2; cursor: not-allowed; }
+        .status { font-size: 10px; color: var(--accent); text-align: center; font-family: monospace; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -43,7 +43,7 @@
             <label>1. Background</label>
             <select id="bgMode"><option value="image">Photo</option><option value="color">Solid Color</option></select>
             <input type="file" id="mediaIn" accept="image/*">
-            <input type="color" id="bgColor" value="#4a0e0e" style="display:none; height:35px;">
+            <input type="color" id="bgColor" value="#050505" style="display:none; height:35px;">
         </div>
         <div class="group">
             <label>2. Audio</label>
@@ -67,14 +67,20 @@
             <label>Pulse</label><input type="range" id="pulseVal" min="0" max="100" value="50">
             <label>Grain</label><input type="range" id="grainLevel" min="0" max="100" value="30">
         </div>
-        <div class="actions"><button id="playBtn">PREVIEW</button><button id="renderBtn" disabled>RENDER MP4</button></div>
+        <div class="actions">
+            <button id="playBtn">PREVIEW</button>
+            <button id="renderBtn" disabled>RENDER MP4</button>
+        </div>
         <div id="progress" class="status">READY</div>
     </div>
 
     <div class="main-view">
         <div class="canvas-wrap"><canvas id="mainCanvas" width="1280" height="720"></canvas></div>
         <div class="timeline-box">
-            <div style="display:flex; justify-content:space-between;"><label>Clip Range</label><label id="timeLabel" style="color:var(--accent); font-family:monospace;">00:00 — 00:00</label></div>
+            <div style="display:flex; justify-content:space-between;">
+                <label>Clip Range</label>
+                <label id="timeLabel" style="color:var(--accent); font-family:monospace;">00:00 — 00:00</label>
+            </div>
             <div class="waveform-wrap" id="waveContainer">
                 <canvas id="waveCanvas"></canvas>
                 <div id="selection" class="selection-overlay"></div>
@@ -99,6 +105,7 @@
         const isColor = e.target.value === 'color';
         document.getElementById('mediaIn').style.display = isColor ? 'none' : 'block';
         document.getElementById('bgColor').style.display = isColor ? 'block' : 'none';
+        draw(startTime, 0);
     };
 
     mediaIn.onchange = (e) => {
@@ -113,7 +120,10 @@
         const ab = await rawAudioFile.arrayBuffer();
         audioBuffer = await audioCtx.decodeAudioData(ab);
         endTime = Math.min(audioBuffer.duration, 15);
-        drawWaveform(); updateSelection(); renderBtn.disabled = false;
+        drawWaveform(); 
+        updateSelection(); 
+        renderBtn.disabled = false;
+        draw(startTime, 0);
     };
 
     function updateSelection() {
@@ -131,7 +141,8 @@
         const time = ((e.clientX - rect.left) / rect.width) * dur;
         if (isStart) startTime = Math.max(0, Math.min(time, endTime - 0.5));
         else endTime = Math.min(dur, Math.max(time, startTime + 0.5));
-        updateSelection(); draw(startTime, 0);
+        updateSelection(); 
+        draw(startTime, 0);
     }
 
     startHandle.onmousedown = () => { window.onmousemove = (e) => handleDrag(e, true); window.onmouseup = () => window.onmousemove = null; };
@@ -145,7 +156,10 @@
         wCtx.fillStyle = "#444";
         for(let i=0; i < waveCanvas.width; i++){
             let min = 1, max = -1;
-            for (let j=0; j<step; j++) { const d = data[(i*step)+j]; if (d < min) min = d; if (d > max) max = d; }
+            for (let j=0; j<step; j++) { 
+                const d = data[(i*step)+j]; 
+                if (d < min) min = d; if (d > max) max = d; 
+            }
             wCtx.fillRect(i, (1+min)*30, 1, Math.max(1, (max-min)*30));
         }
     }
@@ -153,57 +167,93 @@
     function draw(time, amp) {
         ctx.clearRect(0, 0, 1280, 720);
         const fxOn = document.getElementById('fxToggle').value === 'on';
+        
         if (document.getElementById('bgMode').value === 'color') {
-            ctx.fillStyle = document.getElementById('bgColor').value; ctx.fillRect(0, 0, 1280, 720);
+            ctx.fillStyle = document.getElementById('bgColor').value; 
+            ctx.fillRect(0, 0, 1280, 720);
         } else if (bgImg) {
             const p = fxOn ? 1 + (amp * (document.getElementById('pulseVal').value/100) * 0.15) : 1;
             const r = Math.max(1280/bgImg.width, 720/bgImg.height) * p;
-            ctx.save(); if(fxOn) ctx.filter = `blur(${document.getElementById('blurVal').value}px)`;
-            ctx.drawImage(bgImg, (1280 - bgImg.width*r)/2, (720 - bgImg.height*r)/2, bgImg.width*r, bgImg.height*r); ctx.restore();
+            ctx.save(); 
+            if(fxOn) ctx.filter = `blur(${document.getElementById('blurVal').value}px)`;
+            ctx.drawImage(bgImg, (1280 - bgImg.width*r)/2, (720 - bgImg.height*r)/2, bgImg.width*r, bgImg.height*r); 
+            ctx.restore();
         }
+
         if(!fxOn) return;
         const g = document.getElementById('grainLevel').value;
         if (g > 0) {
-            ctx.fillStyle = "white"; for (let i = 0; i < (g * 100); i++) {
-                ctx.globalAlpha = Math.random() * 0.12; ctx.fillRect(Math.random() * 1280, Math.random() * 720, 1.2, 1.2);
+            ctx.fillStyle = "white"; 
+            for (let i = 0; i < (g * 100); i++) {
+                ctx.globalAlpha = Math.random() * 0.12; 
+                ctx.fillRect(Math.random() * 1280, Math.random() * 720, 1.2, 1.2);
             }
             ctx.globalAlpha = 1.0;
         }
+
         const selected = Array.from(document.getElementById('waveType').selectedOptions).map(o => o.value);
-        ctx.fillStyle = ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 2;
+        ctx.fillStyle = ctx.strokeStyle = "rgba(255,255,255,0.7)"; 
+        ctx.lineWidth = 2;
+        
         selected.forEach(type => {
             if(type === 'line') {
-                ctx.beginPath(); for(let i=0; i<1280; i+=10) {
-                    const y = 360 + (Math.sin(i*0.01 + time*5) * (amp*250)); i===0 ? ctx.moveTo(i,y) : ctx.lineTo(i,y);
-                } ctx.stroke();
+                ctx.beginPath(); 
+                for(let i=0; i<1280; i+=10) {
+                    const y = 360 + (Math.sin(i*0.01 + time*5) * (amp*250)); 
+                    i===0 ? ctx.moveTo(i,y) : ctx.lineTo(i,y);
+                } 
+                ctx.stroke();
             } else if(type === 'pulseCircle') {
-                ctx.beginPath(); ctx.arc(640, 360, 120 + amp*200, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); 
+                ctx.arc(640, 360, 120 + amp*200, 0, Math.PI*2); 
+                ctx.stroke();
             } else if(type === 'dots') {
-                for(let i=0; i<60; i++) { ctx.beginPath(); ctx.arc(Math.random()*1280, 360 + (Math.random()-0.5)*amp*600, 2, 0, Math.PI*2); ctx.fill(); }
+                for(let i=0; i<60; i++) { 
+                    ctx.beginPath(); 
+                    ctx.arc(Math.random()*1280, 360 + (Math.random()-0.5)*amp*600, 2, 0, Math.PI*2); 
+                    ctx.fill(); 
+                }
             } else if(type === 'mirrored') {
-                for(let i=0; i<100; i++) { const h = amp*450*Math.random(); ctx.fillRect(i*12.8, 360-h, 10.8, h*2); }
+                for(let i=0; i<80; i++) { 
+                    const h = amp*400*Math.random(); 
+                    ctx.fillRect(i*16, 360-h, 12, h*2); 
+                }
             } else if(type === 'horizon') {
-                ctx.fillRect(0, 360 - (amp*12)/2, 1280, 1 + amp*12);
+                ctx.fillRect(0, 360 - (amp*15)/2, 1280, 1 + amp*15);
             } else if(type === 'floating') {
-                for(let i=0; i<15; i++) { ctx.globalAlpha = 0.4; ctx.fillRect(Math.random()*1280, 360-180 + Math.random()*360, amp*180, 1.5); }
+                for(let i=0; i<15; i++) { 
+                    ctx.globalAlpha = 0.4; 
+                    ctx.fillRect(Math.random()*1280, 360-180 + Math.random()*360, amp*180, 1.5); 
+                }
             }
         });
     }
 
     document.getElementById('playBtn').onclick = () => {
-        if (isPlaying) { isPlaying = false; audioSource.stop(); document.getElementById('playBtn').innerText = "PREVIEW"; return; }
-        isPlaying = true; document.getElementById('playBtn').innerText = "STOP";
-        analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+        if (isPlaying) { 
+            isPlaying = false; 
+            audioSource.stop(); 
+            document.getElementById('playBtn').innerText = "PREVIEW"; 
+            return; 
+        }
+        isPlaying = true; 
+        document.getElementById('playBtn').innerText = "STOP";
+        analyser = audioCtx.createAnalyser(); 
+        analyser.fftSize = 256;
         const dArr = new Uint8Array(analyser.frequencyBinCount);
-        audioSource = audioCtx.createBufferSource(); audioSource.buffer = audioBuffer;
-        audioSource.connect(analyser); analyser.connect(audioCtx.destination);
+        audioSource = audioCtx.createBufferSource(); 
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(analyser); 
+        analyser.connect(audioCtx.destination);
         audioSource.start(0, startTime);
         const pbStart = audioCtx.currentTime;
+
         (function loop() {
             if (!isPlaying) return;
             const cur = startTime + (audioCtx.currentTime - pbStart);
             if (cur >= endTime) { document.getElementById('playBtn').click(); return; }
-            analyser.getByteFrequencyData(dArr); draw(cur, (dArr.reduce((a,b)=>a+b)/dArr.length/255));
+            analyser.getByteFrequencyData(dArr); 
+            draw(cur, (dArr.reduce((a,b)=>a+b)/dArr.length/255));
             requestAnimationFrame(loop);
         })();
     };
@@ -215,49 +265,58 @@
         const audioTag = new Audio();
         audioTag.src = URL.createObjectURL(rawAudioFile);
         audioTag.currentTime = startTime;
-
-        // Ensure we capture audio stream correctly
-        await audioTag.play(); audioTag.pause(); // Prime the audio element
+        audioTag.muted = true; // Prevents audio from playing out of speakers during render
 
         const canvasStream = canvas.captureStream(30);
-        const audioStream = audioTag.captureStream ? audioTag.captureStream() : audioTag.mozCaptureStream();
+        await audioTag.play(); 
         
+        const audioStream = audioTag.captureStream ? audioTag.captureStream() : audioTag.mozCaptureStream();
         const combinedStream = new MediaStream([
             ...canvasStream.getVideoTracks(),
             ...audioStream.getAudioTracks()
         ]);
 
-        // Attempting MP4 first, falling back to WebM if browser denies codec
         let mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
         if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm; codecs=vp9,opus';
         
         const recorder = new MediaRecorder(combinedStream, { mimeType });
         const chunks = [];
         recorder.ondataavailable = e => chunks.push(e.data);
+        
         recorder.onstop = () => {
             const blob = new Blob(chunks, { type: mimeType });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(blob);
             a.download = mimeType.includes('mp4') ? "studio_export.mp4" : "studio_export.webm";
             a.click();
-            renderBtn.disabled = false; document.getElementById('progress').innerText = "DONE.";
+            renderBtn.disabled = false; 
+            document.getElementById('progress').innerText = "DONE.";
         };
 
         recorder.start();
-        audioTag.play();
-
         const duration = endTime - startTime;
-        const frames = duration * 30;
-        
-        for (let i = 0; i < frames; i++) {
-            const t = startTime + (i / 30);
-            const amp = Math.abs(audioBuffer.getChannelData(0)[Math.floor(t * audioBuffer.sampleRate)] || 0);
+        const renderStartTime = performance.now();
+
+        function renderLoop() {
+            const elapsed = (performance.now() - renderStartTime) / 1000;
+            const t = startTime + elapsed;
+
+            if (elapsed >= duration) {
+                recorder.stop();
+                audioTag.pause();
+                return;
+            }
+
+            // High-precision amplitude sampling from the audio buffer
+            const sampleIdx = Math.floor(t * audioBuffer.sampleRate);
+            const amp = Math.abs(audioBuffer.getChannelData(0)[sampleIdx] || 0) * 1.5;
+
             draw(t, amp);
-            document.getElementById('progress').innerText = `RENDERING: ${Math.round((i/frames)*100)}%`;
-            await new Promise(r => setTimeout(r, 16)); 
+            document.getElementById('progress').innerText = `RECORDING: ${Math.round((elapsed/duration)*100)}%`;
+            requestAnimationFrame(renderLoop);
         }
 
-        recorder.stop();
-        audioTag.pause();
+        requestAnimationFrame(renderLoop);
     };
 </script>
 </body>
