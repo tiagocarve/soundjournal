@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SOUNDJOURNAL // STAGE 05 SPEED</title>
+    <style>
+        :root {
+            --bg: #0a0a0a; --panel: #141414; --accent: #e0e0e0; --text: #777;
+            --highlight: #4d79ff; --border: #222; --input-bg: #000; --meter: #22c55e;
+        }
+        body.light-mode {
+            --bg: #fdfdfb; --panel: #f2f2ee; --accent: #1a1a1a; --text: #666;
+            --highlight: #007aff; --border: #ddd; --input-bg: #fff; --meter: #34c759;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: -apple-system, sans-serif; 
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+            transition: background 0.3s;
+        }
+
+        header {
+            padding: 12px 30px; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 1px solid var(--border);
+            background: var(--panel); z-index: 10;
+        }
+        h1 { font-size: 11px; letter-spacing: 4px; color: var(--accent); font-weight: 900; }
+
+        main {
+            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            flex: 1; gap: 1px; background: var(--border);
+        }
+
+        .channel {
+            background: var(--panel); padding: 12px 25px;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+
+        .waveform-wrapper { position: relative; width: 100%; height: 50px; }
+        .waveform-container {
+            width: 100%; height: 100%; background: var(--input-bg);
+            border-radius: 2px; position: relative; cursor: crosshair; overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        canvas { width: 100%; height: 100%; }
+        
+        .v-meter-bg { position: absolute; right: 0; top: 0; width: 4px; height: 100%; background: #222; border-radius: 2px; overflow: hidden; }
+        .v-meter-fill { width: 100%; height: 0%; background: var(--meter); position: absolute; bottom: 0; transition: height 0.1s; }
+
+        .trim-overlay {
+            position: absolute; top: 0; height: 100%;
+            background: rgba(77, 121, 255, 0.1); border-left: 1px solid var(--highlight);
+            border-right: 1px solid var(--highlight); pointer-events: none;
+        }
+
+        .controls-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 7px; text-transform: uppercase; color: var(--text); opacity: 0.8; font-weight: bold; }
+
+        input[type="range"] { appearance: none; width: 100%; height: 2px; background: var(--border); outline: none; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+
+        .btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text); padding: 4px 8px; font-size: 8px;
+            text-transform: uppercase; cursor: pointer; border-radius: 2px;
+        }
+        .btn.active { background: var(--highlight); color: white; border-color: var(--highlight); }
+        .btn.rec-active { color: #ff3b30; border-color: #ff3b30; }
+
+        .fader-box { display: flex; gap: 5px; background: var(--input-bg); padding: 3px; border-radius: 2px; border: 1px solid var(--border); }
+        .fader-box input { background: transparent; border: none; color: var(--accent); width: 25px; font-size: 9px; text-align: center; outline: none; }
+
+        .status-pill { font-size: 9px; font-family: monospace; padding: 2px 6px; border-radius: 10px; border: 1px solid #333; }
+    </style>
+</head>
+<body onclick="resumeAudio()">
+
+<header>
+    <h1>SOUNDJOURNAL // STAGE 05</h1>
+    <div style="display:flex; gap:12px; align-items: center;">
+        <div id="engine-status" class="status-pill">ENGINE: OFFLINE</div>
+        <button class="btn" onclick="document.body.classList.toggle('light-mode')">THEME</button>
+        <button class="btn" id="gen-toggle" onclick="toggleGenerative()">GENERATE</button>
+        <button class="btn" onclick="stopAll()">KILL</button>
+        <button class="btn" id="rec-btn" onclick="toggleMasterRecord()">REC WAV</button>
+    </div>
+</header>
+
+<main id="app-container"></main>
+
+<script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const masterBus = audioCtx.createGain();
+    const reverbNode = audioCtx.createConvolver();
+    const reverbGain = audioCtx.createGain();
+    
+    reverbGain.gain.value = 0.2;
+    masterBus.connect(audioCtx.destination);
+    masterBus.connect(reverbNode);
+    reverbNode.connect(reverbGain);
+    reverbGain.connect(audioCtx.destination);
+
+    (function createReverb() {
+        const len = audioCtx.sampleRate * 3;
+        const buffer = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+        for (let c = 0; c < 2; c++) {
+            const data = buffer.getChannelData(c);
+            for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+        }
+        reverbNode.buffer = buffer;
+    })();
+
+    function resumeAudio() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        document.getElementById('engine-status').innerText = `ENGINE: ${audioCtx.state.toUpperCase()}`;
+    }
+
+    class AmbientChannel {
+        constructor(id, container) {
+            this.id = id; this.buffer = null; this.source = null;
+            this.isPlaying = false; this.isFadedOut = false;
+            this.startTime = 0;
+            
+            this.analyser = audioCtx.createAnalyser();
+            this.analyser.fftSize = 32;
+            this.meterData = new Uint8Array(this.analyser.frequencyBinCount);
+
+            this.gainNode = audioCtx.createGain();
+            this.filterNode = audioCtx.createBiquadFilter();
+            this.pannerNode = audioCtx.createStereoPanner();
+            this.delayNode = audioCtx.createDelay(2.0);
+            this.delayFeedback = audioCtx.createGain();
+            this.driveNode = audioCtx.createWaveShaper();
+            this.reverbSend = audioCtx.createGain();
+
+            this.gainNode.gain.value = 0.7;
+            this.delayNode.delayTime.value = 0.4;
+            this.delayFeedback.gain.value = 0.3;
+            this.reverbSend.gain.value = 0.2;
+            this.fadeInTime = 4; this.fadeOutTime = 6;
+            this.playbackRate = 1.0;
+            this.trim = { start: 0, end: 1 };
+
+            this.driveNode.connect(this.filterNode);
+            this.filterNode.connect(this.gainNode);
+            this.gainNode.connect(this.pannerNode);
+            this.pannerNode.connect(masterBus);
+            this.pannerNode.connect(this.analyser);
+            
+            this.gainNode.connect(this.delayNode);
+            this.delayNode.connect(this.delayFeedback);
+            this.delayFeedback.connect(this.delayNode);
+            this.delayNode.connect(this.pannerNode);
+            this.pannerNode.connect(this.reverbSend);
+            this.reverbSend.connect(reverbNode);
+
+            this.createUI(container);
+            this.setDrive(0);
+            this.startVisualizer();
+        }
+
+        createUI(container) {
+            const el = document.createElement('div');
+            el.className = 'channel';
+            el.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:9px; font-weight:bold; color:var(--text)">CH 0${this.id+1}</span>
+                    <div style="display:flex; gap:5px;">
+                        <input type="file" id="f-${this.id}" hidden onchange="channels[${this.id}].loadFile(event)">
+                        <button class="btn" onclick="document.getElementById('f-${this.id}').click()">Load</button>
+                        <button class="btn" id="pb-${this.id}" onclick="channels[${this.id}].toggle()">Play</button>
+                    </div>
+                </div>
+                <div class="waveform-wrapper">
+                    <div class="waveform-container" id="wc-${this.id}" onmousedown="channels[${this.id}].handleTrim(event)">
+                        <canvas id="cv-${this.id}"></canvas>
+                        <div class="trim-overlay" id="tr-${this.id}"></div>
+                    </div>
+                    <div class="v-meter-bg"><div class="v-meter-fill" id="meter-${this.id}"></div></div>
+                </div>
+                <div class="controls-grid">
+                    <div class="control-group"><label>Gain</label><input type="range" min="0" max="1" step="0.01" value="0.7" oninput="channels[${this.id}].setVolume(this.value)"></div>
+                    <div class="control-group"><label>Pan</label><input type="range" min="-1" max="1" step="0.01" value="0" oninput="channels[${this.id}].setPan(this.value)"></div>
+                    <div class="control-group"><label>Pitch</label><input type="range" min="0.2" max="2" step="0.01" value="1.0" oninput="channels[${this.id}].setSpeed(this.value)"></div>
+                    <div class="control-group"><label>Filter</label><input type="range" min="100" max="15000" step="1" value="15000" oninput="channels[${this.id}].setFilter(this.value)"></div>
+                </div>
+                <div class="controls-grid">
+                    <div class="control-group"><label>Echo Time</label><input type="range" min="0" max="2" step="0.01" value="0.4" oninput="channels[${this.id}].delayNode.delayTime.value=this.value"></div>
+                    <div class="control-group"><label>Space</label><input type="range" min="0" max="1" step="0.01" value="0.2" oninput="channels[${this.id}].reverbSend.gain.value=this.value"></div>
+                    <div class="control-group"><label>Drive</label><input type="range" min="0" max="100" step="1" value="0" oninput="channels[${this.id}].setDrive(this.value)"></div>
+                    <div class="control-group"><label>Speed X</label><input type="range" min="0.1" max="4" step="0.01" value="1.0" oninput="channels[${this.id}].setSpeed(this.value)"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="fader-box">
+                        <input type="number" value="4" onchange="channels[${this.id}].fadeInTime=parseFloat(this.value)">
+                        <input type="number" value="6" onchange="channels[${this.id}].fadeOutTime=parseFloat(this.value)">
+                        <button class="btn" style="border:none" onclick="channels[${this.id}].fadeToggle()">Fade</button>
+                    </div>
+                    <button class="btn" onclick="channels[${this.id}].toggleReverse()">Reverse Buffer</button>
+                </div>
+            `;
+            container.appendChild(el);
+            this.canvas = document.getElementById(`cv-${this.id}`);
+            this.ctx = this.canvas.getContext('2d');
+            this.trimEl = document.getElementById(`tr-${this.id}`);
+            this.meterEl = document.getElementById(`meter-${this.id}`);
+        }
+
+        async loadFile(e) {
+            resumeAudio();
+            const f = e.target.files[0]; if (!f) return;
+            const ab = await f.arrayBuffer();
+            this.buffer = await audioCtx.decodeAudioData(ab);
+            this.drawWaveform();
+        }
+
+        drawWaveform() {
+            const w = this.canvas.width = this.canvas.offsetWidth;
+            const h = this.canvas.height = this.canvas.offsetHeight;
+            this.ctx.clearRect(0, 0, w, h);
+            if (!this.buffer) return;
+            const d = this.buffer.getChannelData(0);
+            const step = Math.ceil(d.length / w);
+            this.ctx.fillStyle = '#444'; 
+            for (let i = 0; i < w; i++) {
+                let min = 1, max = -1;
+                for (let j = 0; j < step; j++) {
+                    const datum = d[(i * step) + j];
+                    if (datum < min) min = datum; if (datum > max) max = datum;
+                }
+                this.ctx.fillRect(i, (1 + min) * (h / 2), 1, Math.max(1, (max - min) * (h / 2)));
+            }
+        }
+
+        startVisualizer() {
+            const update = () => {
+                this.analyser.getByteFrequencyData(this.meterData);
+                let sum = 0;
+                for(let i=0; i<this.meterData.length; i++) sum += this.meterData[i];
+                const level = (sum / this.meterData.length);
+                this.meterEl.style.height = (level / 2.5) + '%';
+
+                if (this.isPlaying && this.buffer) {
+                    this.drawWaveform();
+                    const duration = (this.buffer.duration / this.playbackRate);
+                    const elapsed = (audioCtx.currentTime - this.startTime) % duration;
+                    const progress = (this.trim.start) + (elapsed / (this.buffer.duration / this.playbackRate)) % (this.trim.end - this.trim.start);
+                    this.ctx.fillStyle = '#ff3b30';
+                    this.ctx.fillRect(progress * this.canvas.width, 0, 1.5, this.canvas.height);
+                }
+                requestAnimationFrame(update);
+            };
+            update();
+        }
+
+        handleTrim(e) {
+            const r = document.getElementById(`wc-${this.id}`).getBoundingClientRect();
+            const sx = (e.clientX - r.left) / r.width;
+            const onMove = (me) => {
+                const cx = (me.clientX - r.left) / r.width;
+                this.trim = { start: Math.min(sx, cx), end: Math.max(sx, cx) };
+                this.trimEl.style.left = (this.trim.start * 100) + '%';
+                this.trimEl.style.width = ((this.trim.end - this.trim.start) * 100) + '%';
+            };
+            const onUp = () => {
+                window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp);
+                if (this.isPlaying) this.play(0.1);
+            };
+            window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+        }
+
+        setDrive(v) {
+            const k = parseFloat(v), n = 44100, curve = new Float32Array(n);
+            for (let i = 0; i < n; ++i) {
+                const x = i * 2 / n - 1;
+                curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
+            }
+            this.driveNode.curve = curve;
+        }
+
+        setVolume(v) { this.gainNode.gain.setTargetAtTime(parseFloat(v), audioCtx.currentTime, 0.1); }
+        setPan(p) { this.pannerNode.pan.setTargetAtTime(parseFloat(p), audioCtx.currentTime, 0.1); }
+        setSpeed(s) { this.playbackRate = parseFloat(s); if(this.source) this.source.playbackRate.value = this.playbackRate; }
+        setFilter(f) { this.filterNode.frequency.setTargetAtTime(parseFloat(f), audioCtx.currentTime, 0.1); }
+
+        toggleReverse() {
+            if (!this.buffer) return;
+            for (let i = 0; i < this.buffer.numberOfChannels; i++) this.buffer.getChannelData(i).reverse();
+            this.drawWaveform();
+        }
+
+        toggle() { this.isPlaying ? this.stop() : this.play(); }
+
+        play(fIn) {
+            resumeAudio();
+            if (!this.buffer) return;
+            if (this.source) { try { this.source.stop(); } catch(e) {} }
+            
+            const fade = fIn !== undefined ? fIn : this.fadeInTime;
+            this.source = audioCtx.createBufferSource();
+            this.source.buffer = this.buffer; this.source.loop = true;
+            this.source.loopStart = this.trim.start * this.buffer.duration;
+            this.source.loopEnd = this.trim.end * this.buffer.duration;
+            this.source.playbackRate.value = this.playbackRate;
+            
+            this.source.connect(this.driveNode);
+            this.startTime = audioCtx.currentTime;
+            
+            this.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+            this.gainNode.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+            this.gainNode.gain.exponentialRampToValueAtTime(0.7, audioCtx.currentTime + fade);
+            
+            this.source.start(0, this.source.loopStart);
+            this.isPlaying = true; this.isFadedOut = false;
+            document.getElementById(`pb-${this.id}`).innerText = "Stop";
+            document.getElementById(`pb-${this.id}`).classList.add('active');
+        }
+
+        stop() {
+            if (!this.source) return;
+            const f = this.fadeOutTime;
+            this.gainNode.gain.setTargetAtTime(0.0001, audioCtx.currentTime, f / 4);
+            setTimeout(() => { try { this.source.stop(); this.source = null; } catch(e) {} }, f * 1000);
+            this.isPlaying = false; 
+            document.getElementById(`pb-${this.id}`).innerText = "Play";
+            document.getElementById(`pb-${this.id}`).classList.remove('active');
+        }
+
+        fadeToggle() {
+            if (!this.isPlaying) { this.play(); return; }
+            const now = audioCtx.currentTime;
+            this.gainNode.gain.cancelScheduledValues(now);
+            if (!this.isFadedOut) {
+                this.gainNode.gain.exponentialRampToValueAtTime(0.0001, now + this.fadeOutTime);
+                this.isFadedOut = true;
+            } else {
+                this.gainNode.gain.exponentialRampToValueAtTime(0.7, now + this.fadeInTime);
+                this.isFadedOut = false;
+            }
+        }
+    }
+
+    const channels = [];
+    const container = document.getElementById('app-container');
+    for (let i = 0; i < 4; i++) channels.push(new AmbientChannel(i, container));
+
+    function stopAll() { channels.forEach(ch => ch.stop()); }
+
+    let isGen = false, genInt = null;
+    function toggleGenerative() {
+        isGen = !isGen;
+        const btn = document.getElementById('gen-toggle');
+        if (isGen) {
+            btn.classList.add('active');
+            genInt = setInterval(() => {
+                const ch = channels[Math.floor(Math.random() * 4)];
+                if (!ch.buffer) return;
+                const r = Math.random();
+                if (r < 0.4) ch.fadeToggle();
+                else if (r < 0.7) ch.setPan(Math.random() * 2 - 1);
+                else ch.setSpeed(0.5 + Math.random() * 0.8);
+            }, 8000);
+        } else {
+            btn.classList.remove('active');
+            clearInterval(genInt);
+        }
+    }
+
+    let isRecording = false;
+    let leftChannel = [], rightChannel = [];
+    let recorderNode = null;
+
+    function toggleMasterRecord() {
+        if (!isRecording) {
+            leftChannel = []; rightChannel = [];
+            recorderNode = audioCtx.createScriptProcessor(4096, 2, 2);
+            masterBus.connect(recorderNode);
+            recorderNode.connect(audioCtx.destination);
+            recorderNode.onaudioprocess = (e) => {
+                leftChannel.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+                rightChannel.push(new Float32Array(e.inputBuffer.getChannelData(1)));
+            };
+            isRecording = true;
+            document.getElementById('rec-btn').innerText = "STOP & SAVE";
+            document.getElementById('rec-btn').classList.add('rec-active');
+        } else {
+            isRecording = false;
+            masterBus.disconnect(recorderNode); recorderNode.disconnect();
+            const blob = encodeWAV(mergeBuffers(leftChannel), mergeBuffers(rightChannel));
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `eno-gen-${Date.now()}.wav`; a.click();
+            document.getElementById('rec-btn').innerText = "REC WAV";
+            document.getElementById('rec-btn').classList.remove('rec-active');
+        }
+    }
+
+    function mergeBuffers(buf) {
+        let length = buf.reduce((a, b) => a + b.length, 0);
+        let result = new Float32Array(length), offset = 0;
+        for (let b of buf) { result.set(b, offset); offset += b.length; }
+        return result;
+    }
+
+    function encodeWAV(l, r) {
+        let buffer = new ArrayBuffer(44 + l.length * 4);
+        let view = new DataView(buffer);
+        function writeStr(o, s) { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); }
+        writeStr(0, 'RIFF'); view.setUint32(4, 36 + l.length * 4, true);
+        writeStr(8, 'WAVE'); writeStr(12, 'fmt '); view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); view.setUint16(22, 2, true);
+        view.setUint32(24, 44100, true); view.setUint32(28, 44100 * 4, true);
+        view.setUint16(32, 4, true); view.setUint16(34, 16, true);
+        writeStr(36, 'data'); view.setUint32(40, l.length * 4, true);
+        let offset = 44;
+        for (let i = 0; i < l.length; i++) {
+            view.setInt16(offset, Math.max(-1, Math.min(1, l[i])) * 0x7FFF, true);
+            view.setInt16(offset + 2, Math.max(-1, Math.min(1, r[i])) * 0x7FFF, true);
+            offset += 4;
+        }
+        return new Blob([view], { type: 'audio/wav' });
+    }
+</script>
+</body>
+</html>
