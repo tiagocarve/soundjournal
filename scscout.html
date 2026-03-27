@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Soundjournal | Folder Scout V3.6</title>
+    <title>Soundjournal | Folder Scout V4.2</title>
     <style>
         :root { 
             --bg: #000; --panel: #0d0d0d; --text-dim: #666; --text-mid: #999; --text-bright: #eceae4; 
@@ -32,8 +32,7 @@
         .btn:hover { border-color: var(--text-mid); color: var(--text-bright); background: rgba(128,128,128,0.1); }
         .btn-primary { background: var(--text-bright); color: var(--bg); border: none; }
         .btn-mini { padding: 4px; font-size: 10px; min-width: 32px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-magic { color: #bb86fc; border-color: rgba(187,134,252,0.3); }
-        .btn-magic.loading { opacity: 0.3; cursor: wait; }
+        .btn-danger:hover { color: var(--warn); border-color: var(--warn); }
 
         .file-group { margin-bottom: 30px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel); overflow: hidden; }
         .grid-row { display: grid; grid-template-columns: var(--grid-layout); gap: 15px; align-items: center; padding: 8px 20px; font-family: monospace; }
@@ -43,29 +42,25 @@
         
         .tag-input { background: var(--bg); border: 1px solid var(--border); color: var(--accent); font-size: 11px; padding: 6px; width: 100%; border-radius: 2px; outline: none; }
 
-        /* PLAYER DOCK */
-        #player-dock { 
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 800px; background: var(--panel); border: 1px solid var(--border); 
-            border-top: 2px solid var(--accent); padding: 20px; display: none; 
-            flex-direction: column; gap: 12px; z-index: 1000; border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-        .waveform-container { position: relative; width: 100%; height: 50px; background: #000; cursor: crosshair; border-radius: 4px; border: 1px solid #222; overflow: hidden; }
-        #wave-canvas { width: 100%; height: 100%; }
-        #playhead { position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: var(--accent); pointer-events: none; }
-        
-        /* MODAL */
         #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; padding: 40px; z-index: 2000; }
         #modal-content { background: var(--panel); padding: 30px; height: 100%; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; gap: 15px; }
-        textarea { flex: 1; background: #000; color: #ccc; padding: 20px; font-family: monospace; border: 1px solid var(--border); outline: none; resize: none; }
+        
+        .bulk-header { display: flex; gap: 8px; align-items: stretch; background: #111; padding: 15px; border-radius: 4px; border: 1px solid #222; }
+        .bulk-header input { background: #000; border: 1px solid #333; color: #fff; padding: 8px; font-family: monospace; border-radius: 3px; flex: 1; min-width: 0; }
+        
+        textarea { flex: 1; background: #000; color: #ccc; padding: 20px; font-family: monospace; border: 1px solid var(--border); outline: none; font-size: 13px; line-height: 1.6; resize: none; }
+
+        #player-dock { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 800px; background: var(--panel); border: 1px solid var(--border); border-top: 2px solid var(--accent); padding: 20px; display: none; flex-direction: column; gap: 12px; z-index: 1000; border-radius: 8px; }
+        .waveform-container { position: relative; width: 100%; height: 60px; background: #000; cursor: crosshair; border-radius: 4px; border: 1px solid #222; overflow: hidden; }
+        #wave-canvas { width: 100%; height: 100%; display: block; }
+        #playhead { position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: var(--accent); pointer-events: none; box-shadow: 0 0 10px var(--accent); }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <header>
-        <h1>SC_SCOUT // V3.6 FINAL</h1>
+        <h1>SC_SCOUT // V4.2 BULK_FIXED</h1>
         <div style="display:flex; gap:8px;">
             <button class="btn" onclick="toggleTheme()">🌓 PHASE</button>
             <button class="btn btn-primary" onclick="selectFolder()">SCAN FOLDER</button>
@@ -88,12 +83,32 @@
     <div id="file-display"></div>
 </div>
 
+<div id="modal-overlay" onclick="closeModal()">
+    <div id="modal-content" onclick="event.stopPropagation()">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h2 id="modal-title" style="font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px;"></h2>
+            <button class="btn" onclick="closeModal()">CLOSE</button>
+        </div>
+        
+        <div id="rename-tools" class="bulk-header" style="display:none;">
+            <input type="text" id="bulk-find" placeholder="Find...">
+            <input type="text" id="bulk-replace" placeholder="Replace...">
+            <button class="btn" onclick="applyBulkReplace()">PREVIEW</button>
+            <button class="btn" onclick="appendBulkTags()">+ APPEND TAGS</button>
+            <button class="btn btn-primary" style="background:var(--warn); color:#fff;" onclick="applyToDisk()">APPLY TO DISK</button>
+        </div>
+
+        <textarea id="modal-text"></textarea>
+        <div id="modal-actions" style="display:flex; justify-content: flex-end; gap: 10px;"></div>
+    </div>
+</div>
+
 <div id="player-dock">
     <div style="display:flex; justify-content: space-between; align-items: center;">
         <span id="playing-now" style="font-family: monospace; font-size: 9px; color: var(--accent); letter-spacing: 1px;"></span>
         <span id="time-display" style="font-family: monospace; font-size: 11px; color: var(--text-mid);">00:00 / 00:00</span>
     </div>
-    <div class="waveform-container" onclick="seekAudio(event)">
+    <div class="waveform-container" id="wave-wrap" onclick="seekAudio(event)">
         <canvas id="wave-canvas"></canvas>
         <div id="playhead"></div>
     </div>
@@ -107,16 +122,6 @@
     <audio id="global-player" style="display:none;"></audio>
 </div>
 
-<div id="modal-overlay" onclick="closeModal()">
-    <div id="modal-content" onclick="event.stopPropagation()">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <h2 id="modal-title" style="font-size: 11px; color: var(--accent);"></h2>
-            <button class="btn" onclick="closeModal()">CLOSE</button>
-        </div>
-        <textarea id="modal-text"></textarea>
-    </div>
-</div>
-
 <script>
     let inventory = [];
     let dirHandle = null;
@@ -124,14 +129,15 @@
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function pad(n) { return n.toString().padStart(2, '0'); }
-    function formatTime(s) { if (isNaN(s)) return "--:--"; const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${pad(m)}:${pad(sec)}`; }
-    function formatLocal(d) { return d ? `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}` : "00000000_0000"; }
+    function formatTime(s) { if (isNaN(s)) return "--:--"; const m = Math.floor(s/60), sec = Math.floor(s%60); return `${pad(m)}:${pad(sec)}`; }
+    function formatLocal(d) { return d ? `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}` : ""; }
     function formatDisplayDate(d) { return d ? `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}` : "--:--"; }
 
     async function selectFolder() { try { dirHandle = await window.showDirectoryPicker(); await refreshInventory(); } catch (e) {} }
 
     async function refreshInventory() {
         inventory = [];
+        if(!dirHandle) return;
         for await (const entry of dirHandle.values()) {
             if (entry.kind === 'file' && !entry.name.startsWith('.')) {
                 const file = await entry.getFile();
@@ -142,7 +148,7 @@
                     date: file.lastModified,
                     recEnd: formatDisplayDate(new Date(file.lastModified)),
                     recStart: "--:--", tag: fileTags[entry.name] || "",
-                    duration: "--:--", rawDuration: 0, analyzing: true
+                    duration: "--:--", rawDuration: 0
                 });
             }
         }
@@ -161,31 +167,22 @@
                         item.rawDuration = audio.duration;
                         item.duration = formatTime(audio.duration);
                         item.recStart = formatDisplayDate(new Date(item.date - (audio.duration * 1000)));
-                        item.analyzing = false;
                         URL.revokeObjectURL(url);
                         render();
                     };
-                } catch(e) { item.analyzing = false; }
-            } else { item.analyzing = false; }
+                } catch(e) {}
+            }
         }
     }
 
     function render() {
         const display = document.getElementById('file-display');
         display.innerHTML = '';
-        
-        const sorted = [...inventory].sort((a,b) => {
-            const type = document.getElementById('sort-type').value;
-            if(type === 'name-asc') return a.name.localeCompare(b.name);
-            if(type === 'date-new') return b.date - a.date;
-            return parseFloat(b.size) - parseFloat(a.size);
-        });
-
+        const sorted = [...inventory].sort((a,b) => document.getElementById('sort-type').value === 'name-asc' ? a.name.localeCompare(b.name) : b.date - a.date);
         const query = document.getElementById('search-input').value.toLowerCase();
         const filtered = sorted.filter(f => f.name.toLowerCase().includes(query) || f.tag.toLowerCase().includes(query));
         
         document.getElementById('status-bar').innerHTML = `<span>Matches: <b>${filtered.length}</b></span><span>Dir: <b>${dirHandle?.name || 'None'}</b></span>`;
-
         const groups = {};
         filtered.forEach(f => { if (!groups[f.ext]) groups[f.ext] = []; groups[f.ext].push(f); });
 
@@ -197,17 +194,15 @@
             groups[ext].forEach(f => {
                 const row = document.createElement('div');
                 row.className = 'file-item grid-row';
-                row.innerHTML = `
-                    <button class="btn btn-mini" onclick="playFile('${f.name}')">▶</button>
-                    <span class="file-name" title="${f.name}">${f.name}</span>
+                row.innerHTML = `<button class="btn btn-mini" onclick="playFile('${f.name}')">▶</button>
+                    <span class="file-name">${f.name}</span>
                     <input type="text" class="tag-input" value="${f.tag}" onchange="updateTag('${f.name}', this.value)">
                     <span style="text-align:right">${f.duration}</span>
                     <span style="text-align:center; color:var(--accent)">${f.recStart}</span>
                     <span style="text-align:center">${f.recEnd}</span>
                     <span style="text-align:right">${f.size}</span>
-                    <button class="btn btn-mini btn-magic ${f.analyzing ? 'loading' : ''}" onclick="magicRename('${f.name}')">🪄</button>
-                    <button class="btn btn-mini btn-danger" onclick="softDelete('${f.name}')">🗑</button>
-                `;
+                    <button class="btn btn-mini" style="color:#bb86fc;" onclick="magicRename('${f.name}')">🪄</button>
+                    <button class="btn btn-mini btn-danger" onclick="softDelete('${f.name}')">🗑</button>`;
                 list.appendChild(row);
             });
             wrap.appendChild(list);
@@ -217,25 +212,70 @@
 
     async function magicRename(oldName) {
         const item = inventory.find(f => f.name === oldName);
-        if (!item || item.analyzing || item.rawDuration === 0) return;
-        
         const d = new Date(item.date - (item.rawDuration * 1000));
-        const dateStamp = formatLocal(d);
-        const durStamp = pad(Math.floor(item.rawDuration/60)) + pad(Math.floor(item.rawDuration%60));
-        const folderName = dirHandle.name.toUpperCase();
-        const cleanTag = item.tag ? `_${item.tag.trim().replace(/\s+/g, '_')}` : "";
-        
-        const newName = `${dateStamp}_${durStamp}_${folderName}${cleanTag}.${item.ext}`;
-        
-        if (confirm(`Magic Rename to:\n${newName}`)) {
+        const cleanTag = item.tag ? '_' + item.tag.trim().replace(/\s+/g, '_') : '';
+        const newName = `${formatLocal(d)}_${pad(Math.floor(item.rawDuration/60))}${pad(Math.floor(item.rawDuration%60))}_${dirHandle.name.toUpperCase()}${cleanTag}.${item.ext}`;
+        if (confirm(`Rename to: ${newName}?`)) { try { await item.handle.move(newName); await refreshInventory(); } catch(e) {} }
+    }
+
+    async function softDelete(n) {
+        if(confirm(`Move ${n} to trash?`)){
             try {
-                await item.handle.move(newName);
+                const trashFolder = await dirHandle.getDirectoryHandle('.trash', {create:true});
+                await (inventory.find(f => f.name === n).handle).move(trashFolder, n);
                 await refreshInventory();
-            } catch (e) { alert("Rename failed. File may be in use."); }
+            } catch (e) {}
         }
     }
 
-    /* SHARED LOGIC */
+    function openRenameModal() {
+        if(!inventory.length) return;
+        document.getElementById('modal-title').innerText = "Bulk Rename";
+        document.getElementById('rename-tools').style.display = 'flex';
+        document.getElementById('modal-text').value = inventory.map(f => f.name).join('\n');
+        document.getElementById('modal-actions').innerHTML = "";
+        document.getElementById('modal-overlay').style.display = 'block';
+    }
+
+    function applyBulkReplace() {
+        const f = document.getElementById('bulk-find').value, r = document.getElementById('bulk-replace').value;
+        const lines = document.getElementById('modal-text').value.split('\n');
+        document.getElementById('modal-text').value = lines.map(n => n.split(f).join(r)).join('\n');
+    }
+
+    function appendBulkTags() {
+        const t = prompt("Tag to append:"); if(!t) return;
+        const lines = document.getElementById('modal-text').value.split('\n');
+        document.getElementById('modal-text').value = lines.map(l => {
+            const p = l.split('.'); const e = p.pop(); return `${p.join('.')}_${t.trim().replace(/\s+/g, '_')}.${e}`;
+        }).join('\n');
+    }
+
+    async function applyToDisk() {
+        const names = document.getElementById('modal-text').value.split('\n');
+        for (let i = 0; i < inventory.length; i++) {
+            if (inventory[i].name !== names[i]) await inventory[i].handle.move(names[i]);
+        }
+        closeModal(); await refreshInventory();
+    }
+
+    function prepareExport() {
+        if(!inventory.length) return;
+        const stamp = formatLocal(new Date());
+        let md = `# ${dirHandle?.name || "SCOUT"} LOG - ${stamp}\n\n`;
+        inventory.forEach(f => md += `* **${f.name}** | ${f.duration} | ${f.recStart} | #${f.tag.replace(/\s+/g,'_')}\n`);
+        document.getElementById('modal-title').innerText = "Export Markdown";
+        document.getElementById('rename-tools').style.display = 'none';
+        document.getElementById('modal-text').value = md;
+        document.getElementById('modal-actions').innerHTML = `<button class="btn btn-primary" onclick="downloadMd('LOG_${stamp}.md')">DOWNLOAD .MD</button>`;
+        document.getElementById('modal-overlay').style.display = 'block';
+    }
+
+    function downloadMd(fn) {
+        const blob = new Blob([document.getElementById('modal-text').value], { type: 'text/markdown' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn; a.click();
+    }
+
     async function playFile(name) {
         const item = inventory.find(f => f.name === name);
         const file = await item.handle.getFile();
@@ -244,7 +284,6 @@
         document.getElementById('player-dock').style.display = 'flex';
         document.getElementById('playing-now').innerText = name.toUpperCase();
         player.play();
-        document.getElementById('play-pause-btn').innerText = "||";
         const buf = await audioCtx.decodeAudioData(await file.arrayBuffer());
         drawWave(buf);
         player.ontimeupdate = () => {
@@ -253,13 +292,17 @@
         };
     }
 
+    function seekAudio(e) {
+        const p = document.getElementById('global-player');
+        const r = document.getElementById('wave-wrap').getBoundingClientRect();
+        if (p.duration) p.currentTime = ((e.clientX - r.left) / r.width) * p.duration;
+    }
+
     function drawWave(buffer) {
         const canvas = document.getElementById('wave-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-        const data = buffer.getChannelData(0);
-        const step = Math.ceil(data.length / canvas.width);
-        const amp = canvas.height / 2;
+        const data = buffer.getChannelData(0), step = Math.ceil(data.length / canvas.width), amp = canvas.height / 2;
         ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--accent');
         for(let i=0; i<canvas.width; i++){
@@ -269,15 +312,12 @@
         }
     }
 
-    function togglePlay() { const p = document.getElementById('global-player'); if(p.paused){ p.play(); document.getElementById('play-pause-btn').innerText="||"; } else { p.pause(); document.getElementById('play-pause-btn').innerText="▶"; }}
-    function stopAudio() { const p = document.getElementById('global-player'); p.pause(); p.currentTime=0; document.getElementById('play-pause-btn').innerText="▶"; }
-    function seekAudio(e) { const r = e.currentTarget.getBoundingClientRect(); document.getElementById('global-player').currentTime = ((e.clientX-r.left)/r.width) * document.getElementById('global-player').duration; }
+    function togglePlay() { const p = document.getElementById('global-player'); p.paused ? p.play() : p.pause(); }
+    function stopAudio() { const p = document.getElementById('global-player'); p.pause(); p.currentTime=0; }
     function closePlayer() { document.getElementById('global-player').pause(); document.getElementById('player-dock').style.display='none'; }
-    function updateTag(n,v) { fileTags[n]=v; localStorage.setItem('scout_tags', JSON.stringify(fileTags)); inventory.find(f=>f.name===n).tag=v; }
-    function openRenameModal() { document.getElementById('modal-title').innerText = "Bulk List"; document.getElementById('modal-text').value = inventory.map(f=>f.name).join('\n'); document.getElementById('modal-overlay').style.display='block'; }
     function closeModal() { document.getElementById('modal-overlay').style.display='none'; }
     function toggleTheme() { document.body.classList.toggle('light-mode'); }
-    async function softDelete(n) { if(confirm("Trash?")){ await inventory.find(f => f.name === n).handle.move(await dirHandle.getDirectoryHandle('.trash', {create:true})); await refreshInventory(); }}
+    function updateTag(n,v) { fileTags[n]=v; localStorage.setItem('scout_tags', JSON.stringify(fileTags)); inventory.find(f=>f.name===n).tag=v; }
 </script>
 </body>
 </html>
