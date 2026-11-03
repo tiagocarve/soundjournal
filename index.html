@@ -1,775 +1,767 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOUNDJOURNAL // Suite Portal</title>
-    <style>
-        /* Shared CSS Variables / Tokens */
-        :root[data-theme="dark"] {
-            --bg: #121212;
-            --panel: #1a1a1a;
-            --ui: #242424;
-            --text: #a0a0a0;
-            --text-bright: #ffffff;
-            --text-dim: #666666;
-            --accent: #0088cc;
-            --accent-glow: rgba(0, 136, 204, 0.2);
-            --border: #2e2e2e;
-            --card-hover: #222222;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soundjournal Portal</title>
+  
+  <!-- Premium Minimalist Google Web Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        :root[data-theme="light"] {
-            --bg: #fdf6e3;
-            --panel: #f5eedc;
-            --ui: #eee8d5;
-            --text: #586e75;
-            --text-bright: #073642;
-            --text-dim: #93a1a1;
-            --accent: #268bd2;
-            --accent-glow: rgba(38, 139, 210, 0.2);
-            --border: #d3c7a1;
-            --card-hover: #ebe3cf;
-        }
+  <style>
+    /* Global Color Tokens & System Themes */
+    :root[data-theme="dark"] {
+      --bg: #0d0e11;
+      --panel: #14161b;
+      --border: #232730;
+      --text-dim: #6b7280;
+      --text-mid: #9ca3af;
+      --text-bright: #f3f4f6;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.15);
+      --card-bg: #14161b;
+      --card-hover: #1a1d24;
+    }
 
-        :root[data-theme="sepia"] {
-            --bg: #f4ecd8;
-            --panel: #eae0c8;
-            --ui: #eadaa2;
-            --text: #5b4636;
-            --text-bright: #2b1d0c;
-            --text-dim: #8f7965;
-            --accent: #8c6339;
-            --accent-glow: rgba(140, 99, 57, 0.2);
-            --border: #d8c798;
-            --card-hover: #e0d4b9;
-        }
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --border: #e2e8f0;
+      --text-dim: #94a3b8;
+      --text-mid: #475569;
+      --text-bright: #0f172a;
+      --accent: #059669;
+      --accent-glow: rgba(5, 150, 105, 0.1);
+      --card-bg: #ffffff;
+      --card-hover: #f1f5f9;
+    }
 
-        :root[data-theme="oled"] {
-            --bg: #000000;
-            --panel: #0a0a0a;
-            --ui: #141414;
-            --text: #777777;
-            --text-bright: #e5e5e5;
-            --text-dim: #444444;
-            --accent: #ffffff;
-            --accent-glow: rgba(255, 255, 255, 0.15);
-            --border: #222222;
-            --card-hover: #111111;
-        }
+    :root[data-theme="oled"] {
+      --bg: #000000;
+      --panel: #050505;
+      --border: #1a1a1a;
+      --text-dim: #555555;
+      --text-mid: #888888;
+      --text-bright: #ffffff;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.2);
+      --card-bg: #050505;
+      --card-hover: #0d0d0d;
+    }
 
-        /* Reset & Base Styling */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-        }
+    :root[data-theme="sepia"] {
+      --bg: #f4ebd9;
+      --panel: #ede3d1;
+      --border: #dcd0ba;
+      --text-dim: #9c8f78;
+      --text-mid: #635643;
+      --text-bright: #2c2214;
+      --accent: #b45309;
+      --accent-glow: rgba(180, 83, 9, 0.15);
+      --card-bg: #ede3d1;
+      --card-hover: #e4d8c3;
+    }
 
-        ::-webkit-scrollbar { display: none; }
-        * { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Refined Typography Hierarchy */
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Georgia', -apple-system, BlinkMacSystemFont, serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        /* Sticky Nav Header */
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 500;
-            background: var(--bg);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
+    body {
+      background-color: var(--bg);
+      color: var(--text-bright);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      letter-spacing: -0.011em;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    /* Top Navigation Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 
-        .brand-logo {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 1px solid var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent);
-            font-size: 11px;
-            font-family: monospace;
-            font-weight: bold;
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        .brand-title {
-            font-family: monospace;
-            font-size: 12px;
-            letter-spacing: 3px;
-            color: var(--text-bright);
-            text-transform: uppercase;
-            font-weight: 700;
-        }
+    .brand-logo {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
 
-        .brand-tagline {
-            font-size: 10px;
-            color: var(--text-dim);
-            font-family: monospace;
-            letter-spacing: 1px;
-        }
+    .portal-title {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
 
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        /* Buttons & Inputs */
-        .btn-ui {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-family: monospace;
-            font-size: 11px;
-            padding: 7px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            outline: none;
-        }
+    /* Button Styling */
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      font-weight: 500;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-mid);
+      padding: 7px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
 
-        .btn-ui:hover, .btn-ui.active {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: var(--panel);
-        }
+    .btn:hover {
+      color: var(--text-bright);
+      border-color: var(--text-dim);
+      background: var(--card-hover);
+    }
 
-        .search-box {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            color: var(--text-bright);
-            padding: 8px 14px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 11px;
-            outline: none;
-            width: 220px;
-        }
+    .btn-accent {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
 
-        .search-box:focus {
-            border-color: var(--accent);
-        }
+    .btn-accent:hover {
+      opacity: 0.9;
+      color: #ffffff;
+    }
 
-        /* Layout Main Container */
-        main {
-            flex: 1;
-            max-width: 1300px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 30px 30px 80px;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
+    .view-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
 
-        /* Filter Chips */
-        .filter-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 15px;
-        }
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px;
+    }
 
-        .chip-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+    /* Filter Controls Bar */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
 
-        .chip {
-            font-family: monospace;
-            font-size: 10px;
-            padding: 5px 10px;
-            border-radius: 3px;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            color: var(--text-dim);
-            cursor: pointer;
-            text-transform: uppercase;
-        }
+    .search-box {
+      position: relative;
+      flex: 1;
+      max-width: 360px;
+    }
 
-        .chip.active, .chip:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
+    .search-input {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text-bright);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 10px 14px 10px 36px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
 
-        .view-toggles {
-            display: flex;
-            gap: 4px;
-        }
+    .search-input:focus {
+      border-color: var(--accent);
+    }
 
-        /* Tool Grid & List Views */
-        .tools-container.grid-view {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 20px;
-        }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 13px;
+      pointer-events: none;
+    }
 
-        .tools-container.list-view {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+    .filter-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-        .tool-card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 15px;
-            cursor: pointer;
-            position: relative;
-        }
+    .filter-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
 
-        .tool-card:hover {
-            border-color: var(--accent);
-            background: var(--card-hover);
-        }
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
 
-        .tools-container.list-view .tool-card {
-            flex-direction: row;
-            align-items: center;
-            padding: 14px 20px;
-        }
+    /* Grid Layout for Tool Cards */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      transition: all 0.2s ease;
+    }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-        }
+    /* List Layout Option */
+    .tools-grid.list-view {
+      grid-template-columns: 1fr;
+    }
 
-        .tools-container.list-view .card-header {
-            flex: 1;
-            align-items: center;
-        }
+    .tools-grid.list-view .tool-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+    }
 
-        .tool-title {
-            font-size: 16px;
-            color: var(--text-bright);
-            font-weight: 600;
-        }
+    .tools-grid.list-view .tool-card-body {
+      margin-bottom: 0;
+      flex: 1;
+      padding-right: 20px;
+    }
 
-        .tool-file {
-            font-family: monospace;
-            font-size: 11px;
-            color: var(--accent);
-            margin-top: 2px;
-        }
+    .tools-grid.list-view .tool-footer {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+      justify-content: flex-end;
+    }
 
-        .badge {
-            font-family: monospace;
-            font-size: 9px;
-            padding: 3px 8px;
-            border-radius: 3px;
-            background: var(--ui);
-            color: var(--text-dim);
-            border: 1px solid var(--border);
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
+    /* Tool Cards */
+    .tool-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
 
-        .tool-desc {
-            font-size: 12px;
-            line-height: 1.6;
-            color: var(--text);
-        }
+    .tool-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--text-dim);
+      background: var(--card-hover);
+    }
 
-        .tools-container.list-view .tool-desc {
-            flex: 2;
-            padding: 0 20px;
-        }
+    .tool-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
 
-        .card-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            justify-content: flex-end;
-        }
+    .item-title {
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      line-height: 1.3;
+      color: var(--text-bright);
+    }
 
-        /* Embedded Viewer */
-        #viewer-section {
-            display: none;
-            flex-direction: column;
-            gap: 12px;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 20px;
-            margin-top: 10px;
-        }
+    .file-name {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
 
-        .viewer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .item-desc {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.55;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
 
-        .viewer-status {
-            font-family: monospace;
-            font-size: 11px;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .item-tags {
+      display: flex;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      color: var(--text-mid);
+    }
 
-        .viewer-frame {
-            width: 100%;
-            height: 650px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            background: var(--bg);
-        }
+    .tag-badge {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
 
-        /* Collapsible Drawer Guide */
-        .drawer {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            overflow: hidden;
-        }
+    .tool-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+    }
 
-        .drawer-toggle {
-            width: 100%;
-            padding: 16px 20px;
-            background: transparent;
-            border: none;
-            color: var(--text-bright);
-            font-family: monospace;
-            font-size: 12px;
-            text-align: left;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    /* Embedded Preview Modal / Viewer Drawer */
+    #preview-container {
+      display: none;
+      margin-top: 30px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
 
-        .drawer-toggle:hover {
-            color: var(--accent);
-        }
+    .preview-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+    }
 
-        .drawer-content {
-            display: none;
-            padding: 20px;
-            border-top: 1px solid var(--border);
-            flex-direction: column;
-            gap: 20px;
-        }
+    .preview-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-mid);
+    }
 
-        .snippet-box {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 10px;
-            color: var(--text);
-            overflow-x: auto;
-            white-space: pre;
-        }
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      background: var(--bg);
+    }
 
-        footer {
-            border-top: 1px solid var(--border);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: monospace;
-            font-size: 10px;
-            color: var(--text-dim);
-            background: var(--bg);
-        }
+    /* Centralization & Shared CSS Guide Drawer */
+    .guide-section {
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      padding-top: 30px;
+    }
 
-        @media (max-width: 768px) {
-            header { padding: 12px 15px; }
-            main { padding: 20px 15px; }
-            .tools-container.list-view .tool-card { flex-direction: column; align-items: stretch; }
-            .tools-container.list-view .tool-desc { padding: 0; }
-            .search-box { width: 100%; }
-        }
-    </style>
+    .guide-title {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    .code-block {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-mid);
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--panel);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header, main, footer {
+        padding: 20px;
+      }
+      .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .search-box {
+        max-width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Header Navigation -->
-    <header>
-        <div class="brand">
-            <div class="brand-logo">SJ</div>
-            <div>
-                <div class="brand-title">SOUNDJOURNAL</div>
-                <div class="brand-tagline">A Minimalist Audio & Text Suite</div>
-            </div>
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <span class="portal-title">Soundjournal Repository</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn view-btn active" id="btn-grid" onclick="setView('grid')">Grid</button>
+      <button class="btn view-btn" id="btn-list" onclick="setView('list')">List</button>
+      <button class="btn" onclick="cycleTheme()" title="Switch Theme">◑ Theme</button>
+    </div>
+  </header>
+
+  <!-- Main Repository Portal Content -->
+  <main>
+
+    <!-- Controls: Search & Category Filters -->
+    <div class="controls-bar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-input" placeholder="Search tools or file names..." oninput="filterTools()">
+      </div>
+      <div class="filter-tags">
+        <button class="filter-btn active" onclick="setCategory('all', this)">All Tools</button>
+        <button class="filter-btn" onclick="setCategory('writing', this)">Writing</button>
+        <button class="filter-btn" onclick="setCategory('audio', this)">Audio Edit</button>
+        <button class="filter-btn" onclick="setCategory('generative', this)">Generative</button>
+        <button class="filter-btn" onclick="setCategory('spatial', this)">Spatial</button>
+      </div>
+    </div>
+
+    <!-- Dynamic Tools Grid -->
+    <div class="tools-grid" id="tools-grid">
+
+      <!-- 1. Soundjournal Writer (journal.html) -->
+      <div class="tool-card" data-category="writing" data-keywords="soundjournal journal audio writer github sync waveform deck vault">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Soundjournal</h2>
+            <span class="file-name">journal.html</span>
+          </div>
+          <p class="item-desc">Core audio-driven journal writing space featuring GitHub Sync, inline audio wave deck player, and markdown entry exports.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Writing</span>
+            <span class="tag-badge">WebAudio</span>
+            <span class="tag-badge">Sync</span>
+          </div>
         </div>
-
-        <div class="header-controls">
-            <input type="text" id="search-input" class="search-box" placeholder="Search tools or files..." oninput="filterTools()">
-            <button class="btn-ui" id="theme-btn" onclick="cycleTheme()" title="Switch Theme">
-                <span>◑</span> <span id="theme-label">DARK</span>
-            </button>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('journal.html', 'Soundjournal')">Preview</button>
+          <a href="journal.html" class="btn btn-accent" target="_blank">Launch ↗</a>
         </div>
-    </header>
+      </div>
 
-    <main>
-        <!-- Filter Bar -->
-        <div class="filter-bar">
-            <div class="chip-group">
-                <button class="chip active" onclick="setCategory('all', this)">All (8)</button>
-                <button class="chip" onclick="setCategory('writing', this)">Writing</button>
-                <button class="chip" onclick="setCategory('audio', this)">Audio Edit</button>
-                <button class="chip" onclick="setCategory('generative', this)">Generative</button>
-                <button class="chip" onclick="setCategory('spatial', this)">Spatial</button>
-                <button class="chip" onclick="setCategory('utility', this)">Utilities</button>
-            </div>
-
-            <div class="view-toggles">
-                <button class="btn-ui active" id="grid-btn" onclick="setView('grid')">Grid</button>
-                <button class="btn-ui" id="list-btn" onclick="setView('list')">List</button>
-            </div>
+      <!-- 2. Zen Writer (zen.html) -->
+      <div class="tool-card" data-category="writing" data-keywords="zen writer distraction free minimal focused composition text">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Zen Writer</h2>
+            <span class="file-name">zen.html</span>
+          </div>
+          <p class="item-desc">Ultra-minimalist, distraction-free writing interface tailored for focused composition and single-stream thought capture.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Writing</span>
+            <span class="tag-badge">Minimal</span>
+            <span class="tag-badge">Focus</span>
+          </div>
         </div>
-
-        <!-- Tool Cards Container -->
-        <div class="tools-container grid-view" id="tools-container">
-
-            <!-- 1. Soundjournal -->
-            <div class="tool-card" data-cat="writing" data-search="journal.html soundjournal audio writer github vault waveform" onclick="previewTool('journal.html', 'Soundjournal')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Soundjournal</div>
-                        <div class="tool-file">journal.html</div>
-                    </div>
-                    <span class="badge">Writing / Core</span>
-                </div>
-                <div class="tool-desc">
-                    Core audio-text journal featuring GitHub Vault synchronization, timestamp markers, tag indexing, and an inline Web Audio waveform deck.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('journal.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 2. Zen Writer -->
-            <div class="tool-card" data-cat="writing" data-search="zen.html zen writer distraction free focused writing" onclick="previewTool('zen.html', 'Zen Writer')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Zen Writer</div>
-                        <div class="tool-file">zen.html</div>
-                    </div>
-                    <span class="badge">Writing / Focus</span>
-                </div>
-                <div class="tool-desc">
-                    Minimalist distraction-free focused writing editor with session timers, audio backdrop support, typography cycling, and clean local exports.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('zen.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 3. Audio Cutter / Trimmer -->
-            <div class="tool-card" data-cat="audio" data-search="cut.html loopscout audio cutter trimmer loop slice wav" onclick="previewTool('cut.html', 'Audio Cutter / Trimmer')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Loopscout Cut</div>
-                        <div class="tool-file">cut.html</div>
-                    </div>
-                    <span class="badge">Audio Edit</span>
-                </div>
-                <div class="tool-desc">
-                    Tactile waveform loop trimmer. Select audio regions directly, adjust speed, pitch, and playback direction, and export sliced WAV files.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('cut.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 4. Multitrack Audio Mixer -->
-            <div class="tool-card" data-cat="audio" data-search="mix.html multitrack audio mixer collage generative ambient" onclick="previewTool('mix.html', 'Sound Collage Mixer')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Sound Collage Mix</div>
-                        <div class="tool-file">mix.html</div>
-                    </div>
-                    <span class="badge">Audio Edit</span>
-                </div>
-                <div class="tool-desc">
-                    Generative soundscape mixer. Adjust target duration, chaos, density, and sound stage width to build textured ambient recordings.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('mix.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 5. Field Recorder -->
-            <div class="tool-card" data-cat="writing" data-search="field.html field recorder notebook logging timestamps soundscape" onclick="previewTool('field.html', 'Field Log Notebook')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Field Notebook</div>
-                        <div class="tool-file">field.html</div>
-                    </div>
-                    <span class="badge">Logging</span>
-                </div>
-                <div class="tool-desc">
-                    Time-stamped field recording notebook. Import ambient recordings, trigger keyboard shortcuts to drop markers, and log contextual observations.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('field.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 6. Multitrack Deck -->
-            <div class="tool-card" data-cat="utility" data-search="multi.html multi-tool multitrack timeline gain layers" onclick="previewTool('multi.html', 'Multitrack Deck')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Multitrack Deck</div>
-                        <div class="tool-file">multi.html</div>
-                    </div>
-                    <span class="badge">Multi-Tool</span>
-                </div>
-                <div class="tool-desc">
-                    Synchronized multi-channel audio deck with master level controls, individual track gain sliders, timeline scrubbers, and synced notes.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('multi.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 7. Generative Engine -->
-            <div class="tool-card" data-cat="generative" data-search="enogen.html generative music engine matrix drone quad channel" onclick="previewTool('enogen.html', 'Enogen Matrix')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Enogen Quad Matrix</div>
-                        <div class="tool-file">enogen.html</div>
-                    </div>
-                    <span class="badge">Generative</span>
-                </div>
-                <div class="tool-desc">
-                    4-channel drone and loop matrix for ambient sound generation. Features independent channel trim, level metering, and real-time playback control.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('enogen.html')">Launch ↗</button>
-                </div>
-            </div>
-
-            <!-- 8. Omnidirectional Spatial Generator -->
-            <div class="tool-card" data-cat="spatial" data-search="scomni.html scout omni spatial generator index manager" onclick="previewTool('scomni.html', 'Scout Omni Manager')">
-                <div class="card-header">
-                    <div>
-                        <div class="tool-title">Scout Omni Manager</div>
-                        <div class="tool-file">scomni.html</div>
-                    </div>
-                    <span class="badge">Spatial / Utility</span>
-                </div>
-                <div class="tool-desc">
-                    Omnidirectional sound catalog and spatial file database manager. Group, search, tag, and organize sound assets across local storage.
-                </div>
-                <div class="card-actions">
-                    <button class="btn-ui" onclick="event.stopPropagation(); launchStandalone('scomni.html')">Launch ↗</button>
-                </div>
-            </div>
-
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('zen.html', 'Zen Writer')">Preview</button>
+          <a href="zen.html" class="btn btn-accent" target="_blank">Launch ↗</a>
         </div>
+      </div>
 
-        <!-- Inline Preview Canvas -->
-        <section id="viewer-section">
-            <div class="viewer-header">
-                <div class="viewer-status">
-                    <span>● ACTIVE PREVIEW:</span>
-                    <span id="active-tool-name" style="color: var(--text-bright);">None</span>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-ui" onclick="launchActiveStandalone()">Open Fullscreen ↗</button>
-                    <button class="btn-ui" onclick="closeViewer()">Close ✕</button>
-                </div>
-            </div>
-            <iframe id="preview-frame" class="viewer-frame" src="about:blank"></iframe>
-        </section>
+      <!-- 3. Audio Cutter (cut.html) -->
+      <div class="tool-card" data-category="audio" data-keywords="cut cutter audio trimmer waveform slicer edit web audio api">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Audio Cutter</h2>
+            <span class="file-name">cut.html</span>
+          </div>
+          <p class="item-desc">Precision Web Audio audio waveform trimmer and editor for isolating samples and trimming field recordings.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Audio Edit</span>
+            <span class="tag-badge">Trimmer</span>
+          </div>
+        </div>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('cut.html', 'Audio Cutter')">Preview</button>
+          <a href="cut.html" class="btn btn-accent" target="_blank">Launch ↗</a>
+        </div>
+      </div>
 
-        <!-- Centralization & Architecture Helper Drawer -->
-        <div class="drawer">
-            <button class="drawer-toggle" onclick="toggleDrawer()">
-                <span>❖ REPOSITORY CENTRALIZATION & ARCHITECTURE GUIDE</span>
-                <span id="drawer-arrow">▼</span>
-            </button>
-            <div class="drawer-content" id="drawer-content">
-                <p style="font-size: 12px; line-height: 1.6;">
-                    To centralize styling and navigation across all files in your GitHub repository, extract CSS variables into a shared <code>styles.css</code> file and embed a uniform back-button header in each tool.
-                </p>
+      <!-- 4. Multi-Track Mixer (mix.html) -->
+      <div class="tool-card" data-category="audio" data-keywords="mix mixer multitrack multitrack audio fader volume pan balance layer">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Multi-Track Mixer</h2>
+            <span class="file-name">mix.html</span>
+          </div>
+          <p class="item-desc">Multi-track audio playback deck for layering, balancing volume levels, and panning soundscapes.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Audio Edit</span>
+            <span class="tag-badge">Mixer</span>
+          </div>
+        </div>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('mix.html', 'Multi-Track Mixer')">Preview</button>
+          <a href="mix.html" class="btn btn-accent" target="_blank">Launch ↗</a>
+        </div>
+      </div>
 
-                <div>
-                    <label style="font-family: monospace; font-size: 10px; color: var(--accent); display: block; margin-bottom: 6px;">1. SHARED CSS VARIABLES (styles.css)</label>
-                    <div class="snippet-box">:root[data-theme="dark"] {
-  --bg: #121212;
-  --panel: #1a1a1a;
-  --ui: #242424;
-  --text: #a0a0a0;
-  --text-bright: #ffffff;
-  --accent: #0088cc;
-  --border: #2e2e2e;
+      <!-- 5. Field Recorder (field.html) -->
+      <div class="tool-card" data-category="audio" data-keywords="field recorder microphone ambient audio capture location sound">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Field Recorder</h2>
+            <span class="file-name">field.html</span>
+          </div>
+          <p class="item-desc">Quick ambient field recording tool with live level meters and direct file saving.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Audio Edit</span>
+            <span class="tag-badge">Capture</span>
+          </div>
+        </div>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('field.html', 'Field Recorder')">Preview</button>
+          <a href="field.html" class="btn btn-accent" target="_blank">Launch ↗</a>
+        </div>
+      </div>
+
+      <!-- 6. Multi-Audio Utility (multi.html) -->
+      <div class="tool-card" data-category="audio" data-keywords="multi utility batch playback audio file player sound hub">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Multi-Audio Utility</h2>
+            <span class="file-name">multi.html</span>
+          </div>
+          <p class="item-desc">Batch audio playback loader designed for comparing multiple takes and sample libraries side by side.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Audio Edit</span>
+            <span class="tag-badge">Batch</span>
+          </div>
+        </div>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('multi.html', 'Multi-Audio Utility')">Preview</button>
+          <a href="multi.html" class="btn btn-accent" target="_blank">Launch ↗</a>
+        </div>
+      </div>
+
+      <!-- 7. Generative Engine (enogen.html) -->
+      <div class="tool-card" data-category="generative" data-keywords="enogen generative sound ambient eno generator drone synth web audio">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Generative Engine</h2>
+            <span class="file-name">enogen.html</span>
+          </div>
+          <p class="item-desc">Eno-inspired algorithmic ambient generator producing endless evolving drone textures and melodic patterns.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Generative</span>
+            <span class="tag-badge">Synth</span>
+          </div>
+        </div>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('enogen.html', 'Generative Engine')">Preview</button>
+          <a href="enogen.html" class="btn btn-accent" target="_blank">Launch ↗</a>
+        </div>
+      </div>
+
+      <!-- 8. Spatial Sound Omni (scomni.html) -->
+      <div class="tool-card" data-category="spatial" data-keywords="scomni spatial audio omni 3d positioning binaural panning soundscape">
+        <div class="tool-card-body">
+          <div class="tool-header">
+            <h2 class="item-title">Spatial Sound Omni</h2>
+            <span class="file-name">scomni.html</span>
+          </div>
+          <p class="item-desc">3D binaural spatial audio positioner for panning elements in virtual space and soundscape modeling.</p>
+          <div class="item-tags">
+            <span class="tag-badge">Spatial</span>
+            <span class="tag-badge">3D Audio</span>
+          </div>
+        </div>
+        <div class="tool-footer">
+          <button class="btn" onclick="previewTool('scomni.html', 'Spatial Sound Omni')">Preview</button>
+          <a href="scomni.html" class="btn btn-accent" target="_blank">Launch ↗</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Embedded Tool Live Viewer Drawer -->
+    <div id="preview-container">
+      <div class="preview-header">
+        <span class="preview-title" id="preview-title">Live Preview</span>
+        <button class="btn" onclick="closePreview()">✕ Close Preview</button>
+      </div>
+      <iframe id="preview-frame" src="about:blank"></iframe>
+    </div>
+
+    <!-- Architecture & CSS Centralization Snippet Guide -->
+    <div class="guide-section">
+      <h3 class="guide-title">Repository Centralization Guide</h3>
+      <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5;">
+        To centralize your design tokens and global font styling across all tools (like <code>journal.html</code>, <code>zen.html</code>, etc.), create a single <code>styles.css</code> file in your repo root and include it in each file's <code>&lt;head&gt;</code>:
+      </p>
+      <div class="code-block">
+/* Link in head of all HTML files: &lt;link rel="stylesheet" href="styles.css"&gt; */
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
-:root[data-theme="light"] {
-  --bg: #fdf6e3;
-  --panel: #f5eedc;
-  --ui: #eee8d5;
-  --text: #586e75;
-  --text-bright: #073642;
-  --accent: #268bd2;
-  --border: #d3c7a1;
-}</div>
-                </div>
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.011em;
+}
 
-                <div>
-                    <label style="font-family: monospace; font-size: 10px; color: var(--accent); display: block; margin-bottom: 6px;">2. UNIFIED BACK-TO-HUB HEADER (Include in tool HTML files)</label>
-                    <div class="snippet-box">&lt;header style="display:flex; justify-namespace:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border);"&gt;
-  &lt;a href="index.html" style="color:var(--accent); text-decoration:none; font-family:monospace; font-size:11px;"&gt;← HUB&lt;/a&gt;
-  &lt;span style="font-family:monospace; font-size:11px; color:var(--text-bright);"&gt;SOUNDJOURNAL // TOOL&lt;/span&gt;
-&lt;/header&gt;</div>
-                </div>
-            </div>
-        </div>
-    </main>
+.file-name, .item-tags, button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+      </div>
+    </div>
 
-    <!-- Footer -->
-    <footer>
-        <div>SOUNDJOURNAL SUITE // REPOSITORY HUB</div>
-        <div>TOTAL TOOLS: 8</div>
-    </footer>
+  </main>
 
-    <script>
-        // Theme Cycling
-        const themes = ["dark", "light", "sepia", "oled"];
-        let currentThemeIdx = 0;
-        let activeToolUrl = "";
+  <!-- Footer -->
+  <footer>
+    <span>SOUNDJOURNAL SUITE</span>
+    <span>8 TOOLS INTEGRATED</span>
+  </footer>
 
-        function cycleTheme() {
-            currentThemeIdx = (currentThemeIdx + 1) % themes.length;
-            const newTheme = themes[currentThemeIdx];
-            document.documentElement.setAttribute('data-theme', newTheme);
-            document.getElementById('theme-label').innerText = newTheme.toUpperCase();
-            localStorage.setItem('sj_theme', newTheme);
+  <!-- Interactivity Script -->
+  <script>
+    let activeCategory = 'all';
+
+    // Theme Cycler across Light, Dark, Sepia, and OLED
+    function cycleTheme() {
+      const themes = ["dark", "light", "oled", "sepia"];
+      const current = document.documentElement.getAttribute('data-theme') || "dark";
+      const next = themes[(themes.indexOf(current) + 1) % themes.length];
+      document.documentElement.setAttribute('data-theme', next);
+    }
+
+    // Grid vs List Layout Switcher
+    function setView(mode) {
+      const grid = document.getElementById('tools-grid');
+      const gridBtn = document.getElementById('btn-grid');
+      const listBtn = document.getElementById('btn-list');
+
+      if (mode === 'list') {
+        grid.classList.add('list-view');
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+      } else {
+        grid.classList.remove('list-view');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+      }
+    }
+
+    // Category Filtering
+    function setCategory(cat, element) {
+      activeCategory = cat;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+      filterTools();
+    }
+
+    // Combined Search and Filter Logic
+    function filterTools() {
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.tool-card');
+
+      cards.forEach(card => {
+        const category = card.getAttribute('data-category');
+        const keywords = card.getAttribute('data-keywords').toLowerCase();
+        const textContent = card.innerText.toLowerCase();
+
+        const matchesCategory = (activeCategory === 'all' || category === activeCategory);
+        const matchesSearch = !query || keywords.includes(query) || textContent.includes(query);
+
+        if (matchesCategory && matchesSearch) {
+          card.style.display = "flex";
+        } else {
+          card.style.display = "none";
         }
+      });
+    }
 
-        // Initialize saved theme
-        const savedTheme = localStorage.getItem('sj_theme') || 'dark';
-        if (themes.includes(savedTheme)) {
-            currentThemeIdx = themes.indexOf(savedTheme);
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            document.getElementById('theme-label').innerText = savedTheme.toUpperCase();
-        }
+    // Embedded Preview Iframe Trigger
+    function previewTool(url, title) {
+      const container = document.getElementById('preview-container');
+      const frame = document.getElementById('preview-frame');
+      const titleEl = document.getElementById('preview-title');
 
-        // View Mode Toggling (Grid / List)
-        function setView(viewMode) {
-            const container = document.getElementById('tools-container');
-            const gridBtn = document.getElementById('grid-btn');
-            const listBtn = document.getElementById('list-btn');
+      titleEl.innerText = `Previewing: ${title} (${url})`;
+      frame.src = url;
+      container.style.display = 'block';
+      container.scrollIntoView({ behavior: 'smooth' });
+    }
 
-            if (viewMode === 'grid') {
-                container.className = 'tools-container grid-view';
-                gridBtn.classList.add('active');
-                listBtn.classList.remove('active');
-            } else {
-                container.className = 'tools-container list-view';
-                listBtn.classList.add('active');
-                gridBtn.classList.remove('active');
-            }
-        }
-
-        // Filter Tools by Category
-        function setCategory(cat, btn) {
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-
-            const cards = document.querySelectorAll('.tool-card');
-            cards.forEach(card => {
-                if (cat === 'all' || card.getAttribute('data-cat').includes(cat)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        // Filter Tools by Search Input
-        function filterTools() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const cards = document.querySelectorAll('.tool-card');
-
-            cards.forEach(card => {
-                const searchMeta = card.getAttribute('data-search') || "";
-                if (searchMeta.includes(query)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        // Embedded Preview Control
-        function previewTool(url, name) {
-            activeToolUrl = url;
-            document.getElementById('active-tool-name').innerText = `${name} (${url})`;
-            document.getElementById('preview-frame').src = url;
-            const viewer = document.getElementById('viewer-section');
-            viewer.style.display = 'flex';
-            viewer.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function closeViewer() {
-            document.getElementById('viewer-section').style.display = 'none';
-            document.getElementById('preview-frame').src = "about:blank";
-        }
-
-        function launchStandalone(url) {
-            window.open(url, '_blank');
-        }
-
-        function launchActiveStandalone() {
-            if (activeToolUrl) {
-                window.open(activeToolUrl, '_blank');
-            }
-        }
-
-        // Drawer Toggle
-        function toggleDrawer() {
-            const content = document.getElementById('drawer-content');
-            const arrow = document.getElementById('drawer-arrow');
-            if (content.style.display === 'flex') {
-                content.style.display = 'none';
-                arrow.innerText = '▼';
-            } else {
-                content.style.display = 'flex';
-                arrow.innerText = '▲';
-            }
-        }
-    </script>
+    function closePreview() {
+      const container = document.getElementById('preview-container');
+      const frame = document.getElementById('preview-frame');
+      frame.src = 'about:blank';
+      container.style.display = 'none';
+    }
+  </script>
 </body>
 </html>
