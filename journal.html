@@ -119,7 +119,19 @@
     }
 
         /* Editor */
-        #writing-area { width: 90%; max-width: 680px; margin: 0 auto; padding: 150px 20px 40vh 20px; outline: none; line-height: 1.8; font-size: 19px; min-height: 100vh; }
+        #writing-area { 
+  width: 90%; 
+  max-width: 700px; 
+  margin: 0 auto; 
+  padding: 140px 20px 50vh 20px; 
+  outline: none; 
+  line-height: 1.85; 
+  letter-spacing: -0.01em;
+  font-size: 20px; 
+  min-height: 100vh;
+  /* Typewriter default font */
+  font-family: 'Courier New', Courier, monospace; 
+}
         #scroll-container { height: 100vh; width: 100%; overflow-y: auto; }
         #footer { position: fixed; bottom: 25px; left: 30px; right: 30px; display: flex; justify-content: flex-end; font-family: monospace; font-size: 11px; opacity: 0.6; pointer-events: none; gap: 15px; letter-spacing: 1px; }
         #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: none; align-items: center; justify-content: center; z-index: 3000; }
@@ -327,10 +339,21 @@
             btn.innerText = "✓"; setTimeout(() => btn.innerText = "⎘", 1200);
         }
         function cycleFont() {
-            const fonts = ["'Georgia', serif", "'Courier New', monospace", "sans-serif"];
-            let idx = fonts.findIndex(f => editor.style.fontFamily.includes(f.split("'")[1] || f));
-            editor.style.fontFamily = fonts[(idx + 1) % fonts.length];
-        }
+    // Curated collection of typewriter and minimal writing fonts
+    const fonts = [
+        "'Courier New', Courier, monospace",             // Classic crisp typewriter
+        "'Special Elite', Courier, monospace",           // Vintage worn typewriter
+        "'American Typewriter', Courier, monospace",     // Clean mechanical typewriter
+        "'Lora', Georgia, serif",                        // Minimal editorial serif
+        "'Inter', -apple-system, sans-serif"             // Modern minimal sans
+    ];
+    
+    let current = editor.style.fontFamily;
+    let idx = fonts.findIndex(f => current.toLowerCase().includes(f.split("'")[1]?.toLowerCase() || f.toLowerCase()));
+    let nextIdx = (idx !== -1 ? idx + 1 : 0) % fonts.length;
+    
+    editor.style.fontFamily = fonts[nextIdx];
+}
         function cycleSize() {
             const s = ["16px", "19px", "24px", "32px"];
             let idx = s.indexOf(editor.style.fontSize || "19px");
