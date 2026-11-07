@@ -4,10 +4,45 @@
     <meta charset="UTF-8">
     <title>Soundjournal | Scout V5.6</title>
     <style>
-        :root[data-theme="light"] { --bg: #fdf6e3; --text: #586e75; --ui: #eee8d5; --accent: #268bd2; --wave: #268bd2; --pulse: #e8dfc4; }
-        :root[data-theme="dark"] { --bg: #1a1a1a; --text: #a0a0a0; --ui: #2a2a2a; --accent: #0088cc; --wave: #444; --pulse: #333; }
-        :root[data-theme="oled"] { --bg: #000000; --text: #888888; --ui: #111111; --accent: #ffffff; --wave: #333; --pulse: #222; }
-        :root[data-theme="sepia"] { --bg: #f4ecd8; --text: #5b4636; --ui: #eadaa2; --accent: #8c6339; --wave: #8c6339; --pulse: #dfd09f; }
+        /* 1. Light Mode: Clean, bright paper white with slate text and emerald accent */
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --text: #334155;
+      --ui: #e2e8f0;
+      --accent: #059669;
+      --wave: #059669;
+      --pulse: #e2e8f0;
+    }
+
+    /* 2. Dark Mode: Deep slate/charcoal gray */
+    :root[data-theme="dark"] {
+      --bg: #0d0e11;
+      --text: #9ca3af;
+      --ui: #14161b;
+      --accent: #10b981;
+      --wave: #232730;
+      --pulse: #1a1d24;
+    }
+
+    /* 3. OLED Mode: True absolute pitch black with high-contrast electric accents */
+    :root[data-theme="oled"] {
+      --bg: #000000;
+      --text: #a3a3a3;
+      --ui: #0a0a0a;
+      --accent: #34d399;
+      --wave: #262626;
+      --pulse: #171717;
+    }
+
+    /* 4. Sepia Mode: Distinct rich vintage book paper tone with amber/brown contrast */
+    :root[data-theme="sepia"] {
+      --bg: #f4ebd9;
+      --text: #5c4731;
+      --ui: #e4d8c3;
+      --accent: #b45309;
+      --wave: #b45309;
+      --pulse: #e4d8c3;
+    }
 
         /* --- THE VOID PROTOCOL: INVISIBLE SCROLLING --- */
         ::-webkit-scrollbar { display: none; } /* Chrome, Safari, Edge */
@@ -258,7 +293,12 @@
         function cycleTheme() {
             const th = ["dark", "light", "oled", "sepia"];
             const cur = document.documentElement.getAttribute('data-theme');
-            document.documentElement.setAttribute('data-theme', th[(th.indexOf(cur)+1)%th.length]);
+            let idx = th.indexOf(cur);
+            
+            // If the attribute isn't found (-1), start at index 0, otherwise go to the next one
+            let nextIndex = (idx !== -1 ? idx + 1 : 0) % th.length;
+            
+            document.documentElement.setAttribute('data-theme', th[nextIndex]);
             setTimeout(drawWave, 100);
         }
         function insertStamp() {
