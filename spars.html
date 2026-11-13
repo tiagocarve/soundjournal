@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault / Samply Local</title>
+    <style>
+        :root[data-theme="dark"] {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --surface-hover: #2a2a2a;
+            --text: #e0e0e0;
+            --text-dim: #888888;
+            --accent: #4f46e5;
+            --accent-hover: #6366f1;
+            --border: #2d2d2d;
+            --canvas-bg: #18181b;
+            --wave: #6366f1;
+            --wave-progress: #a855f7;
+            --marker: #ec4899;
+        }
+        :root[data-theme="light"] {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --text: #0f172a;
+            --text-dim: #64748b;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --border: #e2e8f0;
+            --canvas-bg: #f1f5f9;
+            --wave: #4f46e5;
+            --wave-progress: #9333ea;
+            --marker: #db2777;
+        }
+        :root[data-theme="sepia"] {
+            --bg: #f4ecd8;
+            --surface: #fdfaf3;
+            --surface-hover: #f3ebd8;
+            --text: #5c4033;
+            --text-dim: #8c7365;
+            --accent: #b45309;
+            --accent-hover: #92400e;
+            --border: #e6d7bc;
+            --canvas-bg: #ede4cc;
+            --wave: #b45309;
+            --wave-progress: #d97706;
+            --marker: #be185d;
+        }
+        :root[data-theme="oled"] {
+            --bg: #000000;
+            --surface: #0a0a0a;
+            --surface-hover: #171717;
+            --text: #f5f5f5;
+            --text-dim: #737373;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --border: #262626;
+            --canvas-bg: #050505;
+            --wave: #3b82f6;
+            --wave-progress: #06b6d4;
+            --marker: #f43f5e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; transition: background 0.2s, color 0.2s; }
+
+        /* Top Bar */
+        header { height: 50px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; flex-shrink: 0; }
+        .brand { font-weight: bold; font-size: 14px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+        .nav-group { display: flex; gap: 8px; align-items: center; }
+
+        button { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.15s; }
+        button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+        button.primary:hover { background: var(--accent-hover); }
+
+        /* Layout */
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar (Folders & Projects) */
+        sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 8px; }
+        
+        .folder-item { margin-bottom: 4px; border-radius: 4px; overflow: hidden; }
+        .folder-title { display: flex; align-items: center; justify-content: space-between; padding: 8px; background: var(--surface-hover); border-radius: 4px; cursor: pointer; user-select: none; }
+        .folder-title:hover { background: var(--border); }
+        .folder-title.drag-over { border: 2px dashed var(--accent); background: var(--surface); }
+        .subfolder-list { padding-left: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 4px; }
+        
+        /* Center Area (Tracks & Waveform) */
+        .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+        
+        /* Tracklist Section */
+        .tracklist-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .track-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.1s; }
+        .track-row:hover { background: var(--surface-hover); border-color: var(--text-dim); }
+        .track-row.active { border-color: var(--accent); background: var(--surface-hover); }
+        .track-info { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+        .drag-handle { color: var(--text-dim); cursor: grab; padding: 0 4px; }
+        .drag-handle:active { cursor: grabbing; }
+        .track-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+        .track-meta { font-size: 10px; color: var(--text-dim); }
+        .track-actions { display: flex; gap: 6px; align-items: center; }
+
+        /* Waveform Deck */
+        .deck-container { background: var(--surface); border-top: 1px solid var(--border); padding: 16px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+        .deck-top { display: flex; justify-content: space-between; align-items: center; }
+        .now-playing { font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+        .waveform-wrapper { position: relative; height: 90px; background: var(--canvas-bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+        canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
+        
+        .transport-bar { display: flex; align-items: center; justify-content: space-between; }
+        .transport-controls { display: flex; gap: 8px; align-items: center; }
+        .time-display { font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+        /* Right Drawer (Review / Notes) */
+        .review-drawer { width: 320px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .drawer-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .drawer-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        textarea { width: 100%; height: 100px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 8px; resize: none; font-size: 12px; outline: none; }
+        textarea:focus { border-color: var(--accent); }
+        
+        .marker-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+        .marker-item { display: flex; justify-content: space-between; align-items: center; background: var(--surface-hover); padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; border-left: 3px solid var(--marker); }
+        .marker-item:hover { background: var(--border); }
+
+        /* Modal Overlay */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; display: none; }
+        .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 360px; display: flex; flex-direction: column; gap: 14px; }
+        .modal input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 4px; outline: none; }
+        .modal input:focus { border-color: var(--accent); }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* Empty state */
+        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); gap: 12px; text-align: center; padding: 20px; }
+        
+        /* Drop Target Global */
+        body.drag-over::after { content: ''; position: fixed; inset: 0; border: 4px dashed var(--accent); background: rgba(79, 70, 229, 0.05); pointer-events: none; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <span>🎛️ VAULT / SAMPLY LOCAL</span>
+        </div>
+        <div class="nav-group">
+            <button onclick="document.getElementById('file-picker').click()">+ Add Audio Files</button>
+            <input type="file" id="file-picker" multiple accept="audio/*" hidden>
+            <button onclick="openFolderModal()">+ New Folder</button>
+            <button onclick="saveSessionJson()" class="primary">💾 Save Session</button>
+            <button onclick="document.getElementById('session-loader').click()">📂 Load Session</button>
+            <input type="file" id="session-loader" accept=".json" hidden onchange="loadSessionJson(event)">
+            <button onclick="cycleTheme()" title="Toggle Theme">◑ Theme</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <sidebar>
+            <div class="sidebar-header">
+                <span>PROJECTS & FOLDERS</span>
+                <span id="total-tracks-count" style="font-size:10px; color:var(--text-dim)">0 tracks</span>
+            </div>
+            <div class="sidebar-content" id="folder-tree">
+                <!-- Dynamic Folders -->
+            </div>
+        </sidebar>
+
+        <!-- Center Tracklist & Waveform Deck -->
+        <div class="content-area">
+            <div class="tracklist-container" id="tracklist-view" ondragover="event.preventDefault()">
+                <div class="empty-state">
+                    <h3>No Audio Files Loaded</h3>
+                    <p>Click "+ Add Audio Files" or drag & drop audio files here to start organizing.</p>
+                </div>
+            </div>
+
+            <!-- Waveform Deck -->
+            <div class="deck-container" id="deck-container" style="display:none;">
+                <div class="deck-top">
+                    <div class="now-playing">
+                        <span id="playing-track-title">Select a track</span>
+                        <span class="track-meta" id="playing-track-duration">0:00</span>
+                    </div>
+                    <div class="nav-group">
+                        <button onclick="toggleLoop()" id="loop-btn" title="Toggle Loop">🔁 Loop</button>
+                        <button onclick="cycleSpeed()" id="speed-btn">1.0x</button>
+                    </div>
+                </div>
+
+                <div class="waveform-wrapper" id="waveform-wrapper">
+                    <canvas id="wave-canvas"></canvas>
+                </div>
+
+                <div class="transport-bar">
+                    <div class="transport-controls">
+                        <button onclick="playPrev()" title="Previous Track (↑)">⏮</button>
+                        <button onclick="togglePlay()" id="play-pause-btn" class="primary" title="Play/Pause (Space)">▶ Play</button>
+                        <button onclick="stopAudio()" title="Stop">⏹</button>
+                        <button onclick="playNext()" title="Next Track (↓)">⏭</button>
+                        <button onclick="addMarkerAtCurrentTime()" title="Add Timestamp Marker (M)">📍 Stamp</button>
+                    </div>
+                    <div class="time-display">
+                        <span id="current-time">0:00</span> / <span id="total-duration">0:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Drawer: Review & Notes -->
+        <div class="review-drawer" id="review-drawer" style="display:none;">
+            <div class="drawer-header">
+                <span id="drawer-track-title">Track Notes</span>
+                <button onclick="exportMarkdown()" style="font-size:10px;">Export .md</button>
+            </div>
+            <div class="drawer-body">
+                <div>
+                    <label style="font-size:10px; color:var(--text-dim); display:block; margin-bottom:4px;">PROJECT LINER NOTES</label>
+                    <textarea id="track-notes" placeholder="Add notes, arrangement ideas, or mix feedback here..." oninput="saveCurrentTrackNotes()"></textarea>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:var(--text-dim); display:block; margin-bottom:4px;">TIMECODED MARKERS (<span id="marker-count">0</span>)</label>
+                    <div class="marker-list" id="marker-list">
+                        <!-- Markers will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Creating Folder -->
+    <div class="modal-overlay" id="folder-modal">
+        <div class="modal">
+            <h3 id="folder-modal-title">Create New Folder</h3>
+            <input type="text" id="folder-name-input" placeholder="Folder Name (e.g. Album Demos)">
+            <input type="hidden" id="folder-parent-id" value="">
+            <div class="modal-buttons">
+                <button onclick="closeFolderModal()">Cancel</button>
+                <button onclick="confirmCreateFolder()" class="primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Moving Track -->
+    <div class="modal-overlay" id="move-modal">
+        <div class="modal">
+            <h3>Move Track to Folder</h3>
+            <div id="move-folder-list" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;">
+                <!-- Target Folders -->
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeMoveModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let state = {
+            folders: [
+                { id: 'root', name: 'Unsorted Audio', parentId: null, subfolders: [], tracks: [] }
+            ],
+            tracksMap: {}, // id -> track object
+            activeFolderId: 'root',
+            currentTrackId: null,
+            playbackSpeed: 1.0,
+            isLooping: false
+        };
+
+        let themes = ['dark', 'light', 'sepia', 'oled'];
+        let currentThemeIdx = 0;
+
+        // Web Audio Variables
+        let audioCtx = null;
+        const audioElement = new Audio();
+        let audioSourceNode = null;
+        let analyserNode = null;
+        let audioBuffer = null;
+        let canvas = document.getElementById('wave-canvas');
+        let canvasCtx = canvas.getContext('2d');
+        let animationFrameId = null;
+
+        // Drag and Drop Track tracking
+        let draggedTrackId = null;
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromLocalStorage();
+            initAudioEvents();
+            initDragAndDrop();
+            renderFolderTree();
+            renderActiveFolderTracks();
+
+            window.addEventListener('keydown', handleKeyboardShortcuts);
+            window.addEventListener('resize', drawWaveform);
+        });
+
+        function saveStateToLocalStorage() {
+            // Save state structure (exclude raw File objects from localStorage if needed, though they persist in memory during session)
+            const persistData = {
+                folders: state.folders,
+                tracksMap: Object.keys(state.tracksMap).reduce((acc, id) => {
+                    const t = state.tracksMap[id];
+                    acc[id] = { id: t.id, name: t.name, size: t.size, type: t.type, notes: t.notes, markers: t.markers, orderIdx: t.orderIdx };
+                    return acc;
+                }, {}),
+                activeFolderId: state.activeFolderId
+            };
+            localStorage.setItem('samply_vault_session', JSON.stringify(persistData));
+        }
+
+        function loadStateFromLocalStorage() {
+            const saved = localStorage.getItem('samply_vault_session');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state.folders = parsed.folders || state.folders;
+                    state.activeFolderId = parsed.activeFolderId || 'root';
+                    if (parsed.tracksMap) {
+                        state.tracksMap = parsed.tracksMap;
+                    }
+                } catch(e) {
+                    console.error("Failed to load local storage session", e);
+                }
+            }
+        }
+
+        // --- Session JSON Backup & Restore ---
+        function saveSessionJson() {
+            const sessionData = {
+                version: 1.1,
+                timestamp: new Date().toISOString(),
+                folders: state.folders,
+                tracksMap: Object.keys(state.tracksMap).reduce((acc, id) => {
+                    const t = state.tracksMap[id];
+                    // We save metadata and notes/markers. Audio file binaries need re-attaching or re-loading via file picker.
+                    acc[id] = { id: t.id, name: t.name, size: t.size, type: t.type, notes: t.notes, markers: t.markers };
+                    return acc;
+                }, {}),
+                activeFolderId: state.activeFolderId
+            };
+
+            const blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `soundjournal-vault-session-${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadSessionJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.folders && data.tracksMap) {
+                        state.folders = data.folders;
+                        state.tracksMap = data.tracksMap;
+                        state.activeFolderId = data.activeFolderId || 'root';
+                        saveStateToLocalStorage();
+                        renderFolderTree();
+                        renderActiveFolderTracks();
+                        alert("Session restored successfully! Note: Re-select your local audio folder/files if audio buffers need reloading.");
+                    } else {
+                        alert("Invalid session file format.");
+                    }
+                } catch(err) {
+                    alert("Failed to parse JSON session file.");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // --- File Ingestion ---
+        document.getElementById('file-picker').addEventListener('change', (e) => {
+            handleFilesIngest(e.target.files);
+            e.target.value = '';
+        });
+
+        function handleFilesIngest(fileList) {
+            let rootFolder = findFolderById(state.folders, state.activeFolderId) || state.folders[0];
+            
+            Array.from(fileList).forEach(file => {
+                if (!file.type.startsWith('audio/')) return;
+                const trackId = 'track_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                const trackObj = {
+                    id: trackId,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    fileRef: file,
+                    notes: '',
+                    markers: []
+                };
+                state.tracksMap[trackId] = trackObj;
+                if (!rootFolder.tracks.includes(trackId)) {
+                    rootFolder.tracks.push(trackId);
+                }
+            });
+
+            saveStateToLocalStorage();
+            renderFolderTree();
+            renderActiveFolderTracks();
+        }
+
+        // --- Folder Management ---
+        function openFolderModal(parentId = null) {
+            document.getElementById('folder-parent-id').value = parentId || state.activeFolderId;
+            document.getElementById('folder-name-input').value = '';
+            document.getElementById('folder-modal-title').innerText = parentId ? 'Create New Subfolder' : 'Create New Folder';
+            document.getElementById('folder-modal').style.display = 'flex';
+            document.getElementById('folder-name-input').focus();
+        }
+
+        function closeFolderModal() {
+            document.getElementById('folder-modal').style.display = 'none';
+        }
+
+        function confirmCreateFolder() {
+            const name = document.getElementById('folder-name-input').value.trim();
+            const parentId = document.getElementById('folder-parent-id').value;
+            if (!name) return;
+
+            const newFolder = {
+                id: 'folder_' + Date.now(),
+                name: name,
+                parentId: parentId,
+                subfolders: [],
+                tracks: []
+            };
+
+            if (parentId === 'root' || !parentId) {
+                state.folders.push(newFolder);
+            } else {
+                const parent = findFolderById(state.folders, parentId);
+                if (parent) {
+                    parent.subfolders.push(newFolder);
+                } else {
+                    state.folders.push(newFolder);
+                }
+            }
+
+            closeFolderModal();
+            saveStateToLocalStorage();
+            renderFolderTree();
+        }
+
+        function deleteFolder(folderId, event) {
+            event.stopPropagation();
+            if (folderId === 'root') {
+                alert("Cannot delete root folder.");
+                return;
+            }
+            if (!confirm("Delete this folder? Tracks inside will move to Unsorted.")) return;
+
+            // Move tracks to root
+            const folder = findFolderById(state.folders, folderId);
+            if (folder && folder.tracks.length > 0) {
+                state.folders[0].tracks.push(...folder.tracks);
+            }
+
+            removeFolderRecursive(state.folders, folderId);
+            if (state.activeFolderId === folderId) {
+                state.activeFolderId = 'root';
+            }
+
+            saveStateToLocalStorage();
+            renderFolderTree();
+            renderActiveFolderTracks();
+        }
+
+        function removeFolderRecursive(folders, id) {
+            for (let i = 0; i < folders.length; i++) {
+                if (folders[i].id === id) {
+                    folders.splice(i, 1);
+                    return true;
+                }
+                if (folders[i].subfolders && removeFolderRecursive(folders[i].subfolders, id)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function findFolderById(folders, id) {
+            for (const f of folders) {
+                if (f.id === id) return f;
+                if (f.subfolders) {
+                    const found = findFolderById(f.subfolders, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function countTotalTracks() {
+            let count = 0;
+            function countRec(folders) {
+                folders.forEach(f => {
+                    count += f.tracks.length;
+                    if (f.subfolders) countRec(f.subfolders);
+                });
+            }
+            countRec(state.folders);
+            return count;
+        }
+
+        // --- Sidebar & Folder Rendering ---
+        function renderFolderTree() {
+            const container = document.getElementById('folder-tree');
+            container.innerHTML = '';
+
+            document.getElementById('total-tracks-count').innerText = `${countTotalTracks()} tracks`;
+
+            state.folders.forEach(folder => {
+                container.appendChild(createFolderDOM(folder));
+            });
+        }
+
+        function createFolderDOM(folder) {
+            const div = document.createElement('div');
+            div.className = 'folder-item';
+
+            const titleBar = document.createElement('div');
+            titleBar.className = `folder-title ${state.activeFolderId === folder.id ? 'active' : ''}`;
+            titleBar.style.background = state.activeFolderId === folder.id ? 'var(--surface-hover)' : '';
+            titleBar.innerHTML = `
+                <span style="display:flex; align-items:center; gap:6px;">
+                    📁 <strong>${folder.name}</strong> <span style="font-size:10px; color:var(--text-dim)">(${folder.tracks.length})</span>
+                </span>
+                <span style="display:flex; gap:4px;">
+                    <button onclick="openFolderModal('${folder.id}')" title="Add Subfolder" style="padding:2px 6px;">+</button>
+                    ${folder.id !== 'root' ? `<button onclick="deleteFolder('${folder.id}', event)" title="Delete Folder" style="padding:2px 6px;">✕</button>` : ''}
+                </span>
+            `;
+
+            titleBar.onclick = () => {
+                state.activeFolderId = folder.id;
+                renderFolderTree();
+                renderActiveFolderTracks();
+            };
+
+            // Drag and Drop target for tracks onto folder
+            titleBar.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                titleBar.classList.add('drag-over');
+            });
+            titleBar.addEventListener('dragleave', () => {
+                titleBar.classList.remove('drag-over');
+            });
+            titleBar.addEventListener('drop', (e) => {
+                e.preventDefault();
+                titleBar.classList.remove('drag-over');
+                if (draggedTrackId) {
+                    moveTrackToFolder(draggedTrackId, folder.id);
+                }
+            });
+
+            div.appendChild(titleBar);
+
+            if (folder.subfolders && folder.subfolders.length > 0) {
+                const subContainer = document.createElement('div');
+                subContainer.className = 'subfolder-list';
+                folder.subfolders.forEach(sub => {
+                    subContainer.appendChild(createFolderDOM(sub));
+                });
+                div.appendChild(subContainer);
+            }
+
+            return div;
+        }
+
+        // --- Tracklist Rendering & Reordering ---
+        function renderActiveFolderTracks() {
+            const container = document.getElementById('tracklist-view');
+            const activeFolder = findFolderById(state.folders, state.activeFolderId);
+
+            if (!activeFolder || activeFolder.tracks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Folder is Empty</h3>
+                        <p>Drop audio files here or click "+ Add Audio Files" to populate <strong>${activeFolder ? activeFolder.name : 'Folder'}</strong>.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            activeFolder.tracks.forEach((trackId, index) => {
+                const track = state.tracksMap[trackId];
+                if (!track) return;
+
+                const row = document.createElement('div');
+                row.className = `track-row ${state.currentTrackId === trackId ? 'active' : ''}`;
+                row.draggable = true;
+                row.dataset.trackId = trackId;
+
+                row.innerHTML = `
+                    <div class="track-info">
+                        <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+                        <div>
+                            <div class="track-name">${track.name}</div>
+                            <div class="track-meta">${formatBytes(track.size)} • ${track.markers ? track.markers.length : 0} markers</div>
+                        </div>
+                    </div>
+                    <div class="track-actions">
+                        <button onclick="moveTrackPrompt('${trackId}', event)" title="Move to folder">⇄ Move</button>
+                        <button onclick="moveTrackOrder('${trackId}', -1, event)" ${index === 0 ? 'disabled' : ''} title="Move Up">↑</button>
+                        <button onclick="moveTrackOrder('${trackId}', 1, event)" ${index === activeFolder.tracks.length - 1 ? 'disabled' : ''} title="Move Down">↓</button>
+                        <button onclick="playTrack('${trackId}')" class="primary">▶ Play</button>
+                    </div>
+                `;
+
+                // Drag event listeners for track reordering
+                row.addEventListener('dragstart', (e) => {
+                    draggedTrackId = trackId;
+                    e.dataTransfer.setData('text/plain', trackId);
+                });
+
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                row.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedTrackId && draggedTrackId !== trackId) {
+                        reorderTrackInFolder(activeFolder, draggedTrackId, trackId);
+                    }
+                });
+
+                container.appendChild(row);
+            });
+        }
+
+        function reorderTrackInFolder(folder, draggedId, targetId) {
+            const fromIdx = folder.tracks.indexOf(draggedId);
+            const toIdx = folder.tracks.indexOf(targetId);
+            if (fromIdx > -1 && toIdx > -1) {
+                folder.tracks.splice(fromIdx, 1);
+                folder.tracks.splice(toIdx, 0, draggedId);
+                saveStateToLocalStorage();
+                renderActiveFolderTracks();
+            }
+        }
+
+        function moveTrackOrder(trackId, direction, event) {
+            event.stopPropagation();
+            const folder = findFolderById(state.folders, state.activeFolderId);
+            if (!folder) return;
+            const idx = folder.tracks.indexOf(trackId);
+            const newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= folder.tracks.length) return;
+
+            folder.tracks.splice(idx, 1);
+            folder.tracks.splice(newIdx, 0, trackId);
+            saveStateToLocalStorage();
+            renderActiveFolderTracks();
+        }
+
+        function moveTrackToFolder(trackId, targetFolderId) {
+            // Remove from all folders first
+            state.folders.forEach(f => removeTrackFromFolderRec(f, trackId));
+            const targetFolder = findFolderById(state.folders, targetFolderId);
+            if (targetFolder) {
+                targetFolder.tracks.push(trackId);
+                saveStateToLocalStorage();
+                renderFolderTree();
+                renderActiveFolderTracks();
+            }
+        }
+
+        function removeTrackFromFolderRec(folder, trackId) {
+            folder.tracks = folder.tracks.filter(id => id !== trackId);
+            if (folder.subfolders) {
+                folder.subfolders.forEach(sub => removeTrackFromFolderRec(sub, trackId));
+            }
+        }
+
+        // Move track modal picker
+        function moveTrackPrompt(trackId, event) {
+            event.stopPropagation();
+            const listContainer = document.getElementById('move-folder-list');
+            listContainer.innerHTML = '';
+
+            function renderFolderButtons(folders, depth = 0) {
+                folders.forEach(f => {
+                    const btn = document.createElement('button');
+                    btn.style.textAlign = 'left';
+                    btn.style.paddingLeft = (depth * 16 + 10) + 'px';
+                    btn.innerHTML = `📁 ${f.name}`;
+                    btn.onclick = () => {
+                        moveTrackToFolder(trackId, f.id);
+                        closeMoveModal();
+                    };
+                    listContainer.appendChild(btn);
+                    if (f.subfolders) renderFolderButtons(f.subfolders, depth + 1);
+                });
+            }
+
+            renderFolderButtons(state.folders);
+            document.getElementById('move-modal').style.display = 'flex';
+        }
+
+        function closeMoveModal() {
+            document.getElementById('move-modal').style.display = 'none';
+        }
+
+        // --- Audio Playback & Web Audio Waveform ---
+        function initAudioEvents() {
+            audioElement.addEventListener('timeupdate', updatePlaybackProgress);
+            audioElement.addEventListener('ended', handleTrackEnded);
+            
+            // Global drag and drop for files
+            window.addEventListener('dragover', (e) => { e.preventDefault(); document.body.classList.add('drag-over'); });
+            window.addEventListener('dragleave', (e) => { if(e.clientX === 0 && e.clientY === 0) document.body.classList.remove('drag-over'); });
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                document.body.classList.remove('drag-over');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFilesIngest(e.dataTransfer.files);
+                }
+            });
+
+            canvas.addEventListener('click', (e) => {
+                if (!audioBuffer) return;
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const pct = clickX / canvas.clientWidth;
+                audioElement.currentTime = pct * audioElement.duration;
+            });
+
+            canvas.addEventListener('dblclick', (e) => {
+                if (!state.currentTrackId) return;
+                addMarkerAtCurrentTime();
+            });
+        }
+
+        async function playTrack(trackId) {
+            const track = state.tracksMap[trackId];
+            if (!track) return;
+
+            state.currentTrackId = trackId;
+            renderActiveFolderTracks();
+
+            document.getElementById('deck-container').style.display = 'flex';
+            document.getElementById('review-drawer').style.display = 'flex';
+            document.getElementById('playing-track-title').innerText = track.name;
+            document.getElementById('drawer-track-title').innerText = track.name;
+            document.getElementById('track-notes').value = track.notes || '';
+
+            renderMarkers();
+
+            if (!track.fileRef) {
+                alert("Audio file reference missing in this session. Please re-import files if needed.");
+                return;
+            }
+
+            const objectUrl = URL.createObjectURL(track.fileRef);
+            audioElement.src = objectUrl;
+            audioElement.playbackRate = state.playbackSpeed;
+            audioElement.play();
+            document.getElementById('play-pause-btn').innerText = '⏸ Pause';
+
+            await decodeAndDrawWaveform(track.fileRef);
+        }
+
+        async function decodeAndDrawWaveform(file) {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const arrayBuffer = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            drawWaveform();
+        }
+
+        function drawWaveform() {
+            if (!audioBuffer) return;
+            canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+            canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const rawData = audioBuffer.getChannelData(0);
+            const samples = 200; // number of bars
+            const blockSz = Math.floor(rawData.length / samples);
+            const filteredData = [];
+
+            for (let i = 0; i < samples; i++) {
+                let blockSum = 0;
+                for (let j = 0; j < blockSz; j++) {
+                    blockSum += Math.abs(rawData[i * blockSz + j]);
+                }
+                filteredData.push(blockSum / blockSz);
+            }
+
+            const multiplier = Math.pow(Math.max(...filteredData), -1);
+            const normalizedData = filteredData.map(n => n * multiplier);
+
+            const barWidth = canvas.width / samples;
+            const gap = 2;
+
+            for (let i = 0; i < samples; i++) {
+                const x = i * barWidth;
+                const height = normalizedData[i] * (canvas.height * 0.8);
+                const y = (canvas.height - height) / 2;
+
+                const progressPct = audioElement.duration ? (audioElement.currentTime / audioElement.duration) : 0;
+                canvasCtx.fillStyle = (i / samples) <= progressPct ? getComputedStyle(document.documentElement).getPropertyValue('--wave-progress').trim() : getComputedStyle(document.documentElement).getPropertyValue('--wave').trim();
+
+                canvasCtx.fillRect(x, y, barWidth - gap, Math.max(height, 2));
+            }
+        }
+
+        function togglePlay() {
+            if (!audioElement.src) return;
+            if (audioElement.paused) {
+                audioElement.play();
+                document.getElementById('play-pause-btn').innerText = '⏸ Pause';
+            } else {
+                audioElement.pause();
+                document.getElementById('play-pause-btn').innerText = '▶ Play';
+            }
+        }
+
+        function stopAudio() {
+            audioElement.pause();
+            audioElement.currentTime = 0;
+            document.getElementById('play-pause-btn').innerText = '▶ Play';
+        }
+
+        function toggleLoop() {
+            state.isLooping = !state.isLooping;
+            audioElement.loop = state.isLooping;
+            const btn = document.getElementById('loop-btn');
+            btn.style.borderColor = state.isLooping ? 'var(--accent)' : '';
+            btn.style.background = state.isLooping ? 'var(--surface-hover)' : '';
+        }
+
+        function cycleSpeed() {
+            const speeds = [0.75, 1.0, 1.25, 1.5];
+            let idx = speeds.indexOf(state.playbackSpeed);
+            idx = (idx + 1) % speeds.length;
+            state.playbackSpeed = speeds[idx];
+            audioElement.playbackRate = state.playbackSpeed;
+            document.getElementById('speed-btn').innerText = `${state.playbackSpeed}x`;
+        }
+
+        function updatePlaybackProgress() {
+            if (!audioElement.duration) return;
+            const cur = audioElement.currentTime;
+            const dur = audioElement.duration;
+
+            document.getElementById('current-time').innerText = formatTime(cur);
+            document.getElementById('total-duration').innerText = formatTime(dur);
+            document.getElementById('playing-track-duration').innerText = formatTime(dur);
+
+            drawWaveform();
+        }
+
+        function handleTrackEnded() {
+            if (!state.isLooping) {
+                playNext();
+            }
+        }
+
+        function playNext() {
+            const activeFolder = findFolderById(state.folders, state.activeFolderId);
+            if (!activeFolder || activeFolder.tracks.length === 0) return;
+            const idx = activeFolder.tracks.indexOf(state.currentTrackId);
+            if (idx > -1 && idx < activeFolder.tracks.length - 1) {
+                playTrack(activeFolder.tracks[idx + 1]);
+            } else {
+                playTrack(activeFolder.tracks[0]); // Loop folder
+            }
+        }
+
+        function playPrev() {
+            const activeFolder = findFolderById(state.folders, state.activeFolderId);
+            if (!activeFolder || activeFolder.tracks.length === 0) return;
+            const idx = activeFolder.tracks.indexOf(state.currentTrackId);
+            if (idx > 0) {
+                playTrack(activeFolder.tracks[idx - 1]);
+            }
+        }
+
+        // --- Markers & Notes ---
+        function addMarkerAtCurrentTime() {
+            const track = state.tracksMap[state.currentTrackId];
+            if (!track) return;
+            if (!track.markers) track.markers = [];
+
+            const time = audioElement.currentTime;
+            const markerName = prompt("Marker label / note:", `Marker at ${formatTime(time)}`) || `Cue @ ${formatTime(time)}`;
+            
+            track.markers.push({ time, label: markerName });
+            track.markers.sort((a,b) => a.time - b.time);
+
+            saveStateToLocalStorage();
+            renderMarkers();
+        }
+
+        function renderMarkers() {
+            const track = state.tracksMap[state.currentTrackId];
+            const list = document.getElementById('marker-list');
+            const countEl = document.getElementById('marker-count');
+            if (!track || !track.markers) {
+                list.innerHTML = '<span style="color:var(--text-dim); font-size:11px;">No markers yet. Double-click waveform or click Stamp.</span>';
+                countEl.innerText = '0';
+                return;
+            }
+
+            countEl.innerText = track.markers.length;
+            list.innerHTML = '';
+            track.markers.forEach((m, idx) => {
+                const div = document.createElement('div');
+                div.className = 'marker-item';
+                div.innerHTML = `
+                    <span><strong>[${formatTime(m.time)}]</strong> ${m.label}</span>
+                    <button onclick="removeMarker(${idx})" style="padding:1px 4px; font-size:9px;" title="Delete">✕</button>
+                `;
+                div.onclick = (e) => {
+                    if (e.target.tagName !== 'BUTTON') {
+                        audioElement.currentTime = m.time;
+                    }
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function removeMarker(idx) {
+            const track = state.tracksMap[state.currentTrackId];
+            if (!track || !track.markers) return;
+            track.markers.splice(idx, 1);
+            saveStateToLocalStorage();
+            renderMarkers();
+        }
+
+        function saveCurrentTrackNotes() {
+            const track = state.tracksMap[state.currentTrackId];
+            if (!track) return;
+            track.notes = document.getElementById('track-notes').value;
+            saveStateToLocalStorage();
+        }
+
+        // --- Keyboard Shortcuts ---
+        function handleKeyboardShortcuts(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            } else if (e.code === 'ArrowRight') {
+                audioElement.currentTime = Math.min(audioElement.duration || 0, audioElement.currentTime + 5);
+            } else if (e.code === 'ArrowLeft') {
+                audioElement.currentTime = Math.max(0, audioElement.currentTime - 5);
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                playNext();
+            } else if (e.code === 'ArrowUp') {
+                e.preventDefault();
+                playPrev();
+            } else if (e.code === 'KeyM') {
+                addMarkerAtCurrentTime();
+            } else if (e.code === 'KeyL') {
+                toggleLoop();
+            }
+        }
+
+        // --- Export & Utilities ---
+        function exportMarkdown() {
+            const track = state.tracksMap[state.currentTrackId];
+            if (!track) return;
+
+            let md = `# Soundjournal Review: ${track.name}\n\n`;
+            md += `* **File Size**: ${formatBytes(track.size)}\n`;
+            md += `* **Duration**: ${formatTime(audioElement.duration)}\n\n`;
+            md += `## Notes\n${track.notes || 'No notes added.'}\n\n`;
+            md += `## Timecoded Markers\n`;
+            if (track.markers && track.markers.length > 0) {
+                track.markers.forEach(m => {
+                    md += `- **[${formatTime(m.time)}]**: ${m.label}\n`;
+                });
+            } else {
+                md += `No markers recorded.\n`;
+            }
+
+            const blob = new Blob([md], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${track.name.replace(/\.[^/.]+$/, "")}-notes.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function cycleTheme() {
+            currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+            document.documentElement.setAttribute('data-theme', themes[currentThemeIdx]);
+        }
+
+        function formatTime(secs) {
+            if (isNaN(secs)) return "0:00";
+            const mins = Math.floor(secs / 60);
+            const remaining = Math.floor(secs % 60);
+            return `${mins}:${remaining < 10 ? '0' : ''}${remaining}`;
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>
